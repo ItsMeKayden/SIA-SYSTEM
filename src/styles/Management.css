@@ -1,0 +1,217 @@
+.management-section {
+  width: 100%;
+}
+
+.management-section .section-header {
+  margin-bottom: 25px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.header-content h3 {
+  margin: 0 0 5px 0;
+  font-size: 24px;
+  color: #333;
+  font-weight: 600;
+}
+
+.header-content p {
+  margin: 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.add-admin-btn {
+  padding: 10px 20px;
+  background-color: #667eea;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  white-space: nowrap;
+}
+
+.add-admin-btn:hover {
+  background-color: #764ba2;
+}
+
+.management-section .search-box {
+  margin-bottom: 20px;
+}
+
+.management-section .search-input {
+  width: 100%;
+  max-width: 400px;
+  padding: 10px 15px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.3s ease;
+}
+
+.management-section .search-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.management-section .table-wrapper {
+  overflow-x: auto;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.management-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.management-table thead {
+  background-color: #f8f9fa;
+}
+
+.management-table th {
+  padding: 15px;
+  text-align: left;
+  font-weight: 600;
+  color: #333;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.management-table td {
+  padding: 15px;
+  border-bottom: 1px solid #e0e0e0;
+  color: #555;
+}
+
+.management-table tbody tr:hover {
+  background-color: #f9f9f9;
+}
+
+.name-cell {
+  font-weight: 600;
+  color: #333;
+}
+
+.role-select {
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 13px;
+  background-color: white;
+  cursor: pointer;
+  transition: border-color 0.3s ease;
+}
+
+.role-select:hover {
+  border-color: #667eea;
+}
+
+.role-select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.status-badge.active {
+  background-color: #27ae60;
+}
+
+.status-badge.inactive {
+  background-color: #95a5a6;
+}
+
+.management-table .actions-cell {
+  display: flex;
+  gap: 8px;
+}
+
+.action-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toggle-btn {
+  background-color: #e8f5e9;
+  color: #27ae60;
+}
+
+.toggle-btn:hover {
+  background-color: #27ae60;
+  color: white;
+}
+
+.toggle-btn.inactive {
+  background-color: #f5f5f5;
+  color: #999;
+}
+
+.toggle-btn.inactive:hover {
+  background-color: #999;
+  color: white;
+}
+
+.delete-btn {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+.delete-btn:hover {
+  background-color: #c62828;
+  color: white;
+}
+
+@media (max-width: 768px) {
+  .management-section .section-header {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .add-admin-btn {
+    width: 100%;
+  }
+
+  .management-section .search-input {
+    max-width: 100%;
+  }
+
+  .management-table {
+    font-size: 12px;
+  }
+
+  .management-table th,
+  .management-table td {
+    padding: 10px;
+  }
+
+  .action-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+}
