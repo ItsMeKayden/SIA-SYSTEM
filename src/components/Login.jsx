@@ -10,7 +10,7 @@ function Login({ onSwitchToRegister, onLoginSuccess }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     setLoading(true);
-    // Add your login logic here
+    // Add your login logic herea
     console.log('Login attempt:', { email, password, isAdmin });
 
     // Simulate login success - you would normally verify credentials
