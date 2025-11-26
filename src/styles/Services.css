@@ -84,6 +84,24 @@
   color: #333;
 }
 
+.status-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 20px;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.status-badge.available {
+  background-color: #27ae60;
+}
+
+.status-badge.not-available {
+  background-color: #95a5a6;
+}
+
 .actions-cell {
   display: flex;
   gap: 8px;
@@ -160,6 +178,13 @@
   font-weight: 600;
 }
 
+.modal-header h2 {
+  margin: 0;
+  font-size: 22px;
+  color: #333;
+  font-weight: 600;
+}
+
 .close-btn {
   background: none;
   border: none;
@@ -180,6 +205,10 @@
 }
 
 .service-form {
+  padding: 25px;
+}
+
+.edit-form {
   padding: 25px;
 }
 
@@ -292,4 +321,76 @@
   .form-row {
     grid-template-columns: 1fr;
   }
+}
+
+.confirmation-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.confirmation-content {
+  background-color: white;
+  border-radius: 8px;
+  padding: 30px;
+  max-width: 400px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  text-align: center;
+}
+
+.confirmation-content h3 {
+  margin: 0 0 15px 0;
+  font-size: 20px;
+  color: #333;
+  font-weight: 600;
+}
+
+.confirmation-content p {
+  margin: 0 0 25px 0;
+  font-size: 14px;
+  color: #666;
+  line-height: 1.5;
+}
+
+.confirmation-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-cancel,
+.btn-confirm {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-cancel {
+  background-color: #f5f5f5;
+  color: #333;
+  border: 1px solid #ddd;
+}
+
+.btn-cancel:hover {
+  background-color: #e0e0e0;
+}
+
+.btn-confirm {
+  background-color: #c62828;
+  color: white;
+}
+
+.btn-confirm:hover {
+  background-color: #a02020;
 }

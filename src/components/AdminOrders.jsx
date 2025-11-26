@@ -46,6 +46,16 @@ function AdminOrders() {
     },
   ]);
 
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [viewOrder, setViewOrder] = useState(null);
+  const [editOrder, setEditOrder] = useState(null);
+  const [editFormData, setEditFormData] = useState({
+    customer: '',
+    date: '',
+    items: '',
+    total: '',
+  });
+
   const ordersData = orders;
 
   const handleStatusChange = (orderId, newStatus) => {
@@ -54,6 +64,58 @@ function AdminOrders() {
         order.id === orderId ? { ...order, status: newStatus } : order
       )
     );
+  };
+
+  const handleViewClick = (order) => {
+    setViewOrder(order);
+  };
+
+  const handleCloseView = () => {
+    setViewOrder(null);
+  };
+
+  const handleEditClick = (order) => {
+    setEditOrder(order.id);
+    setEditFormData({
+      customer: order.customer,
+      date: order.date,
+      items: order.items,
+      total: order.total,
+    });
+  };
+
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
+    setEditFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSaveEdit = () => {
+    setOrders(
+      orders.map((order) =>
+        order.id === editOrder ? { ...order, ...editFormData } : order
+      )
+    );
+    setEditOrder(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditOrder(null);
+  };
+
+  const handleDeleteClick = (orderId) => {
+    setDeleteConfirm(orderId);
+  };
+
+  const confirmDelete = (orderId) => {
+    setOrders(orders.filter((order) => order.id !== orderId));
+    setDeleteConfirm(null);
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirm(null);
   };
 
   const filteredOrders = ordersData.filter(
@@ -130,15 +192,197 @@ function AdminOrders() {
                 </td>
                 <td className="total-cell">{order.total}</td>
                 <td className="actions-cell">
-                  <button className="action-btn view-btn">👁️</button>
-                  <button className="action-btn edit-btn">✏️</button>
-                  <button className="action-btn delete-btn">🗑️</button>
+                  <button
+                    className="action-btn view-btn"
+                    onClick={() => handleViewClick(order)}
+                    title="View"
+                  >
+                    👁️
+                  </button>
+                  <button
+                    className="action-btn edit-btn"
+                    onClick={() => handleEditClick(order)}
+                    title="Edit"
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    className="action-btn delete-btn"
+                    onClick={() => handleDeleteClick(order.id)}
+                  >
+                    🗑️
+                  </button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {deleteConfirm && (
+        <div className="confirmation-modal">
+          <div className="confirmation-content">
+            <h3>Delete Order</h3>
+            <p>
+              Are you sure you want to delete this order? This action cannot be
+              undone.
+            </p>
+            <div className="confirmation-actions">
+              <button className="btn-cancel" onClick={cancelDelete}>
+                Cancel
+              </button>
+              <button
+                className="btn-confirm"
+                onClick={() => confirmDelete(deleteConfirm)}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {viewOrder && (
+        <div className="modal-overlay" onClick={handleCloseView}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Order Details</h3>
+              <button className="close-btn" onClick={handleCloseView}>
+                ✕
+              </button>
+            </div>
+
+            <div className="order-details">
+              <div className="detail-group">
+                <label>Order ID</label>
+                <p>{viewOrder.id}</p>
+              </div>
+
+              <div className="detail-group">
+                <label>Customer Name</label>
+                <p>{viewOrder.customer}</p>
+              </div>
+
+              <div className="detail-group">
+                <label>Order Date</label>
+                <p>{viewOrder.date}</p>
+              </div>
+
+              <div className="detail-group">
+                <label>Items</label>
+                <p>{viewOrder.items}</p>
+              </div>
+
+              <div className="detail-group">
+                <label>Status</label>
+                <p>
+                  <span
+                    className="status-badge-detail"
+                    style={{
+                      backgroundColor: getStatusColor(viewOrder.status),
+                    }}
+                  >
+                    {viewOrder.status}
+                  </span>
+                </p>
+              </div>
+
+              <div className="detail-group">
+                <label>Total Amount</label>
+                <p className="total-amount">{viewOrder.total}</p>
+              </div>
+
+              <div className="detail-actions">
+                <button className="btn-close" onClick={handleCloseView}>
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editOrder && (
+        <div className="modal-overlay" onClick={handleCancelEdit}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Edit Order</h3>
+              <button className="close-btn" onClick={handleCancelEdit}>
+                ✕
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSaveEdit();
+              }}
+              className="edit-form"
+            >
+              <div className="form-group">
+                <label htmlFor="edit-customer">Customer Name</label>
+                <input
+                  type="text"
+                  id="edit-customer"
+                  name="customer"
+                  value={editFormData.customer}
+                  onChange={handleEditChange}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="edit-date">Order Date</label>
+                <input
+                  type="date"
+                  id="edit-date"
+                  name="date"
+                  value={editFormData.date}
+                  onChange={handleEditChange}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="edit-items">Items</label>
+                <textarea
+                  id="edit-items"
+                  name="items"
+                  value={editFormData.items}
+                  onChange={handleEditChange}
+                  rows="3"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="edit-total">Total Amount</label>
+                <input
+                  type="text"
+                  id="edit-total"
+                  name="total"
+                  value={editFormData.total}
+                  onChange={handleEditChange}
+                  required
+                />
+              </div>
+
+              <div className="form-actions">
+                <button
+                  type="button"
+                  className="btn-cancel"
+                  onClick={handleCancelEdit}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn-submit">
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
