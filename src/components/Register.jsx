@@ -2,6 +2,10 @@ import { useState } from 'react';
 import '../styles/Register.css';
 
 function Register({ onSwitchToLogin }) {
+  const [isAdmin, setIsAdmin] = useState(false);
+  
+  
+
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -22,19 +26,93 @@ function Register({ onSwitchToLogin }) {
     setError('');
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const [message, setMessage] = useState('');
 
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return;
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  if (formData.password !== formData.confirmPassword) {
+    setError('Passwords do not match');
+    return;
+  }
+
+  setLoading(true);
+  setMessage('');
+
+  if (isAdmin) {
+    // Admin registration logic will go here
+    try {
+      const response = await fetch('http://localhost:8081/signupadmin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: formData.fullName,
+          password: formData.password,
+          role: 'admin'
+        }),
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        setMessage('Success! User added to database.');
+        setFormData({
+          fullName: '',
+          email: '',
+          phoneNumber: '',
+          address: '',
+          password: '',
+          confirmPassword: '',
+        });
+      } else {
+        setMessage('Error: ' + result.error);
+      }
+    } catch (error) {
+      setMessage('Cannot connect to server. Make sure backend is running.');
+    } finally {
+      setLoading(false);
     }
+    
+  } else {
+    // USER REGISTRATIONNNNNNNNNNNN
+    try {
+      const response = await fetch('http://localhost:8081/signupuser', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: formData.fullName,
+          password: formData.password,
+          email: formData.email,
+          contact: formData.phoneNumber
+        }),
+      });
 
-    setLoading(true);
-    console.log('Register attempt:', formData);
-    // Add your registration logic here
-    setLoading(false);
-  };
+      const result = await response.json();
+      
+      if (result.success) {
+        setMessage('Success! User added to database.');
+        setFormData({
+          fullName: '',
+          email: '',
+          phoneNumber: '',
+          address: '',
+          password: '',
+          confirmPassword: '',
+        });
+      } else {
+        setMessage('Error: ' + result.error);
+      }
+    } catch (error) {
+      setMessage('Cannot connect to server. Make sure backend is running.');
+    } finally {
+      setLoading(false);
+    }
+  }
+};
 
   return (
     <div className="register-page">
@@ -132,6 +210,16 @@ function Register({ onSwitchToLogin }) {
             />
           </div>
 
+          <div className="form-group checkbox">
+            <input
+              type="checkbox"
+              id="admin"
+              checked={isAdmin}
+              onChange={(e) => setIsAdmin(e.target.checked)}
+            />
+            <label htmlFor="admin">Login as Admin</label>
+          </div>
+
           <button type="submit" className="register-btn" disabled={loading}>
             {loading ? 'Registering...' : 'Register'}
           </button>
@@ -151,9 +239,12 @@ function Register({ onSwitchToLogin }) {
             </a>
           </p>
         </div>
+        {message && <div className="error-message">{message}</div>}
       </div>
     </div>
   );
 }
+
+
 
 export default Register;
