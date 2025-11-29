@@ -2,24 +2,49 @@ import { useState } from 'react';
 import '../styles/Login.css';
 
 function Login({ onSwitchToRegister, onLoginSuccess }) {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [message, setMessage] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    // Add your login logic herea
-    console.log('Login attempt:', { email, password, isAdmin });
+    setMessage('');
 
-    // Simulate login success - you would normally verify credentials
-    setTimeout(() => {
-      setLoading(false);
-      if (onLoginSuccess) {
-        onLoginSuccess(isAdmin);
+    try {
+      const endpoint = isAdmin ? '/loginadmin' : '/loginuser';
+      
+      const response = await fetch(`http://localhost:8081${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: username,
+          password: password
+        }),
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        setMessage('Login successful!');
+        setUsername('');
+        setPassword('');
+        
+        if (onLoginSuccess) {
+          onLoginSuccess(isAdmin, result.user);
+        }
+      } else {
+        setMessage(result.error);
       }
-    }, 1000);
+    } catch (error) {
+      setMessage('Cannot connect to server. Make sure backend is running.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -31,16 +56,25 @@ function Login({ onSwitchToRegister, onLoginSuccess }) {
           <p className="tagline">Smart Laundry Management System</p>
         </div>
 
+        {message && (
+          <div className={`message ${message.includes('Invalid') || message.includes('Cannot connect') ? 'error' : 'success'}`}>
+            {message}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
-            <label htmlFor="email">Email</label>
+            <label htmlFor="username">
+              {isAdmin ? 'Admin Username' : 'Username'}
+            </label>
             <input
-              type="email"
-              id="email"
-              placeholder="Enter your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              type="text"
+              id="username"
+              placeholder={isAdmin ? "Enter admin username" : "Enter your username"}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               required
+              disabled={loading}
             />
           </div>
 
@@ -53,6 +87,7 @@ function Login({ onSwitchToRegister, onLoginSuccess }) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              disabled={loading}
             />
           </div>
 
@@ -62,6 +97,7 @@ function Login({ onSwitchToRegister, onLoginSuccess }) {
               id="admin"
               checked={isAdmin}
               onChange={(e) => setIsAdmin(e.target.checked)}
+              disabled={loading}
             />
             <label htmlFor="admin">Login as Admin</label>
           </div>

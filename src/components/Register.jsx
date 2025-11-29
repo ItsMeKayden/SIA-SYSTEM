@@ -40,7 +40,7 @@ function Register({ onSwitchToLogin }) {
   setMessage('');
 
   if (isAdmin) {
-    // Admin registration logic will go here
+    // ADMIN REGISTRATIONNNNNNNNNNNN
     try {
       const response = await fetch('http://localhost:8081/signupadmin', {
         method: 'POST',

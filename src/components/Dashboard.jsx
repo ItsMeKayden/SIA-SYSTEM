@@ -5,14 +5,26 @@ import Orders from './Orders';
 import Tracking from './Tracking';
 import Profile from './Profile';
 
-function Dashboard() {
-  const [activeTab, setActiveTab] = useState('orders');
-  const [userName] = useState('John Doe');
 
+function Dashboard({ userData, onLogout }) {
+  const [activeTab, setActiveTab] = useState('orders');
+  
+  const getUserName = () => {
+    if (!userData) return 'Username Not Found';
+    
+    // Try different possible field names from your database
+    return userData.fld_username;
+  };
+
+  //USES THE LOGOUT FUNCTION PASSED AS PROP FROM App.JSX
   const handleLogout = () => {
-    // Add logout logic here
-    console.log('Logged out');
-    window.location.href = '/';
+    if (onLogout) {
+      onLogout();
+    } else {
+      // Fallback if onLogout is not provided
+      console.log('Logged out');
+      window.location.href = '/';
+    }
   };
 
   return (
@@ -20,7 +32,7 @@ function Dashboard() {
       <header className="dashboard-header">
         <div className="header-left">
           <h2 className="logo">WashTrack</h2>
-          <p className="welcome-text">Welcome, {userName}</p>
+          <p className="welcome-text">Welcome, {getUserName()}</p>
         </div>
         <button className="logout-btn" onClick={handleLogout}>
           Logout
@@ -31,9 +43,9 @@ function Dashboard() {
         <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
         <main className="dashboard-content">
-          {activeTab === 'orders' && <Orders />}
-          {activeTab === 'tracking' && <Tracking />}
-          {activeTab === 'profile' && <Profile />}
+          {activeTab === 'orders' && <Orders userData={userData} />}
+          {activeTab === 'tracking' && <Tracking userData={userData} />}
+          {activeTab === 'profile' && <Profile userData={userData} />}
         </main>
       </div>
     </div>

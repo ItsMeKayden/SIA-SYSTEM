@@ -6,6 +6,7 @@ import AdminDashboard from './components/AdminDashboard';
 
 function App() {
   const [currentPage, setCurrentPage] = useState('login');
+  const [userData, setUserData] = useState(null);
 
   const handleSwitchToRegister = () => {
     setCurrentPage('register');
@@ -15,7 +16,9 @@ function App() {
     setCurrentPage('login');
   };
 
-  const handleLoginSuccess = (isAdmin = false) => {
+  const handleLoginSuccess = (isAdmin = false, user = null) => {
+    setUserData(user);
+
     if (isAdmin) {
       setCurrentPage('admin');
     } else {
@@ -25,6 +28,7 @@ function App() {
 
   const handleLogout = () => {
     setCurrentPage('login');
+    setUserData(null);
   };
 
   return (
@@ -37,9 +41,15 @@ function App() {
       ) : currentPage === 'register' ? (
         <Register onSwitchToLogin={handleSwitchToLogin} />
       ) : currentPage === 'admin' ? (
-        <AdminDashboard />
+        <AdminDashboard 
+          userData={userData}
+          onLogout={handleLogout}
+        />
       ) : (
-        <Dashboard />
+        <Dashboard
+          userData={userData}
+          onLogout={handleLogout}
+        />
       )}
     </>
   );
