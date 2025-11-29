@@ -1,21 +1,22 @@
 const express = require('express');
-const mysql = require('mysql');
+const mysql = require('mysql2');
 const cors = require('cors');
 const app = express();
 app.use(cors());
 app.use(express.json());
 
 const db = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "061504",
-  database: "washtrack_db"
+  host: 'localhost',
+  user: 'root',
+  password: '1234',
+  database: 'washtrack_db',
 });
 
 // FOR CHECKING CONNECTION
 db.connect((err) => {
   if (err) {
-    console.log('Database connection failed');
+    console.log('Database connection failed:', err.message);
+    console.log('Error code:', err.code);
   } else {
     console.log('Connected to database');
   }
@@ -24,32 +25,164 @@ db.connect((err) => {
 // FOR SIGNUP FUNCTIONALITY
 app.post('/signupuser', (req, res) => {
   const { username, password, email, contact } = req.body;
-  
-  const sql = "INSERT INTO tbl_user (fld_username, fld_password, fld_email, fld_contact) VALUES (?, ?, ?, ?)";
-  
+
+  const sql =
+    'INSERT INTO tbl_user (fld_username, fld_password, fld_email, fld_contact) VALUES (?, ?, ?, ?)';
+
   db.query(sql, [username, password, email, contact], (err, result) => {
     if (err) {
-      res.json({ success: false, error: "Failed to sign up:" + err.message});
+      res.json({ success: false, error: 'Failed to sign up:' + err.message });
     } else {
-      res.json({ success: true, message: "User added!" });
+      res.json({ success: true, message: 'User added!' });
     }
   });
 });
 
-app.post('/signupadmin', (req, res) => {
-  const { username, password, role } = req.body;
-  
-  const sql = "INSERT INTO tbl_admin (fld_username, fld_password, fld_role) VALUES (?, ?, ?)";
-  
-  db.query(sql, [username, password, role], (err, result) => {
+// FOR ADMIN LOGIN
+app.post('/loginadmin', (req, res) => {
+  const { username, password } = req.body;
+
+  console.log('Admin login attempt:', { email: username, password });
+
+  const sql =
+    'SELECT * FROM tbl_admin WHERE fld_email = ? AND fld_password = ?';
+
+  db.query(sql, [username, password], (err, result) => {
     if (err) {
-      res.json({ success: false, error: "Failed to sign up" });
+      console.log('Database error:', err.message);
+      res.json({ success: false, error: 'Login failed: ' + err.message });
     } else {
-      res.json({ success: true, message: "User added!" });
+      console.log('Query result:', result);
+      if (result.length > 0) {
+        res.json({ success: true, message: 'Admin login successful' });
+      } else {
+        res.json({ success: false, error: 'Invalid email or password' });
+      }
     }
   });
 });
 
-app.listen(8081, () => {
+// FOR USER LOGIN
+app.post('/loginuser', (req, res) => {
+  const { username, password } = req.body;
+
+  const sql = 'SELECT * FROM tbl_user WHERE fld_email = ? AND fld_password = ?';
+
+  db.query(sql, [username, password], (err, result) => {
+    if (err) {
+      res.json({ success: false, error: 'Login failed: ' + err.message });
+    } else if (result.length > 0) {
+      res.json({ success: true, message: 'User login successful' });
+    } else {
+      res.json({ success: false, error: 'Invalid email or password' });
+    }
+  });
+});
+
+// FOR GETTING ALL SERVICES
+app.get('/services', (req, res) => {
+  const sql = 'SELECT * FROM tbl_services';
+
+  db.query(sql, (err, result) => {
+    if (err) {
+      res.json({
+        success: false,
+        error: 'Failed to fetch services: ' + err.message,
+      });
+    } else {
+      res.json({ success: true, data: result });
+    }
+  });
+});
+
+// FOR CREATING A NEW SERVICE
+app.post('/services', (req, res) => {
+  const { name, description, status, price } = req.body;
+
+  console.log('Creating service with:', { name, description, status, price });
+
+  const sql =
+    'INSERT INTO tbl_services (fld_serviceName, fld_description, fld_serviceStatus, fld_servicePrice) VALUES (?, ?, ?, ?)';
+
+  db.query(sql, [name, description, status, price], (err, result) => {
+    if (err) {
+      console.error('Database error:', err);
+      res.json({
+        success: false,
+        error: 'Failed to create service: ' + err.message,
+      });
+    } else {
+      console.log('Service created with ID:', result.insertId);
+      res.json({
+        success: true,
+        message: 'Service created successfully',
+        id: result.insertId,
+      });
+    }
+  });
+});
+
+// FOR UPDATING A SERVICE
+app.put('/services/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const { name, description, status, price } = req.body;
+
+  console.log('Updating service ID:', id, 'Type:', typeof id, 'with:', {
+    name,
+    description,
+    status,
+    price,
+  });
+
+  const sql =
+    'UPDATE tbl_services SET fld_serviceName = ?, fld_description = ?, fld_serviceStatus = ?, fld_servicePrice = ? WHERE fld_serviceID = ?';
+
+  db.query(sql, [name, description, status, price, id], (err, result) => {
+    if (err) {
+      console.error('Update error:', err);
+      return res.json({
+        success: false,
+        error: 'Failed to update service: ' + err.message,
+      });
+    }
+
+    console.log('Update result - Rows affected:', result.affectedRows);
+
+    if (result.affectedRows === 0) {
+      return res.json({ success: false, error: 'Service ID not found' });
+    }
+
+    res.json({ success: true, message: 'Service updated successfully' });
+  });
+});
+
+// FOR DELETING A SERVICE
+app.delete('/services/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+
+  console.log('Deleting service ID:', id, 'Type:', typeof id);
+
+  const sql = 'DELETE FROM tbl_services WHERE fld_serviceID = ?';
+
+  db.query(sql, [id], (err, result) => {
+    if (err) {
+      console.error('Delete error:', err);
+      return res.json({
+        success: false,
+        error: 'Failed to delete service: ' + err.message,
+      });
+    }
+
+    console.log('Delete result - Rows affected:', result.affectedRows);
+
+    if (result.affectedRows === 0) {
+      return res.json({ success: false, error: 'Service ID not found' });
+    }
+
+    res.json({ success: true, message: 'Service deleted successfully' });
+  });
+});
+
+app.listen(8081, '0.0.0.0', () => {
   console.log('Server running on port 8081');
 });

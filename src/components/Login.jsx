@@ -7,19 +7,41 @@ function Login({ onSwitchToRegister, onLoginSuccess }) {
   const [loading, setLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    // Add your login logic herea
-    console.log('Login attempt:', { email, password, isAdmin });
 
-    // Simulate login success - you would normally verify credentials
-    setTimeout(() => {
-      setLoading(false);
-      if (onLoginSuccess) {
-        onLoginSuccess(isAdmin);
+    try {
+      const endpoint = isAdmin
+        ? 'http://localhost:8081/loginadmin'
+        : 'http://localhost:8081/loginuser';
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: email,
+          password: password,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setLoading(false);
+        if (onLoginSuccess) {
+          onLoginSuccess(isAdmin);
+        }
+      } else {
+        setLoading(false);
+        alert('Invalid email or password');
       }
-    }, 1000);
+    } catch (error) {
+      setLoading(false);
+      alert('Cannot connect to server. Make sure backend is running.');
+    }
   };
 
   return (
