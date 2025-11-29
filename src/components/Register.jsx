@@ -2,10 +2,6 @@ import { useState } from 'react';
 import '../styles/Register.css';
 
 function Register({ onSwitchToLogin }) {
-  const [isAdmin, setIsAdmin] = useState(false);
-  
-  
-
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -29,54 +25,16 @@ function Register({ onSwitchToLogin }) {
   const [message, setMessage] = useState('');
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (formData.password !== formData.confirmPassword) {
-    setError('Passwords do not match');
-    return;
-  }
-
-  setLoading(true);
-  setMessage('');
-
-  if (isAdmin) {
-    // ADMIN REGISTRATIONNNNNNNNNNNN
-    try {
-      const response = await fetch('http://localhost:8081/signupadmin', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: formData.fullName,
-          password: formData.password,
-          role: 'admin'
-        }),
-      });
-
-      const result = await response.json();
-      
-      if (result.success) {
-        setMessage('Success! User added to database.');
-        setFormData({
-          fullName: '',
-          email: '',
-          phoneNumber: '',
-          address: '',
-          password: '',
-          confirmPassword: '',
-        });
-      } else {
-        setMessage('Error: ' + result.error);
-      }
-    } catch (error) {
-      setMessage('Cannot connect to server. Make sure backend is running.');
-    } finally {
-      setLoading(false);
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      return;
     }
-    
-  } else {
-    // USER REGISTRATIONNNNNNNNNNNN
+
+    setLoading(true);
+    setMessage('');
+
     try {
       const response = await fetch('http://localhost:8081/signupuser', {
         method: 'POST',
@@ -87,12 +45,12 @@ function Register({ onSwitchToLogin }) {
           username: formData.fullName,
           password: formData.password,
           email: formData.email,
-          contact: formData.phoneNumber
+          contact: formData.phoneNumber,
         }),
       });
 
       const result = await response.json();
-      
+
       if (result.success) {
         setMessage('Success! User added to database.');
         setFormData({
@@ -111,8 +69,7 @@ function Register({ onSwitchToLogin }) {
     } finally {
       setLoading(false);
     }
-  }
-};
+  };
 
   return (
     <div className="register-page">
@@ -210,16 +167,6 @@ function Register({ onSwitchToLogin }) {
             />
           </div>
 
-          <div className="form-group checkbox">
-            <input
-              type="checkbox"
-              id="admin"
-              checked={isAdmin}
-              onChange={(e) => setIsAdmin(e.target.checked)}
-            />
-            <label htmlFor="admin">Login as Admin</label>
-          </div>
-
           <button type="submit" className="register-btn" disabled={loading}>
             {loading ? 'Registering...' : 'Register'}
           </button>
@@ -244,7 +191,5 @@ function Register({ onSwitchToLogin }) {
     </div>
   );
 }
-
-
 
 export default Register;

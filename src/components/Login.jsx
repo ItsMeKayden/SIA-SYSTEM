@@ -11,39 +11,37 @@ function Login({ onSwitchToRegister, onLoginSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setMessage('');
 
     try {
-      const endpoint = isAdmin ? '/loginadmin' : '/loginuser';
-      
-      const response = await fetch(`http://localhost:8081${endpoint}`, {
+      const endpoint = isAdmin
+        ? 'http://localhost:8081/loginadmin'
+        : 'http://localhost:8081/loginuser';
+
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          username: username,
-          password: password
+          username: email,
+          password: password,
         }),
       });
 
       const result = await response.json();
-      
+
       if (result.success) {
-        setMessage('Login successful!');
-        setUsername('');
-        setPassword('');
-        
+        setLoading(false);
         if (onLoginSuccess) {
-          onLoginSuccess(isAdmin, result.user);
+          onLoginSuccess(isAdmin);
         }
       } else {
-        setMessage(result.error);
+        setLoading(false);
+        alert('Invalid email or password');
       }
     } catch (error) {
-      setMessage('Cannot connect to server. Make sure backend is running.');
-    } finally {
       setLoading(false);
+      alert('Cannot connect to server. Make sure backend is running.');
     }
   };
 

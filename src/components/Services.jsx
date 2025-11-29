@@ -1,37 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import '../styles/Services.css';
 
 function Services() {
-  const [services, setServices] = useState([
-    {
-      id: 1,
-      name: 'Wash & Fold',
-      description: 'Standard washing and folding service',
-      status: 'Available',
-      price: '$15.00',
-    },
-    {
-      id: 2,
-      name: 'Dry Cleaning',
-      description: 'Professional dry cleaning',
-      status: 'Available',
-      price: '$25.00',
-    },
-    {
-      id: 3,
-      name: 'Iron & Press',
-      description: 'Ironing and pressing service',
-      status: 'Available',
-      price: '$10.00',
-    },
-    {
-      id: 4,
-      name: 'Express Service',
-      description: 'Same day service',
-      status: 'Not Available',
-      price: '$35.00',
-    },
-  ]);
+  const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const [showForm, setShowForm] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
@@ -42,14 +14,52 @@ function Services() {
     status: 'Available',
     price: '',
   });
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    description: '',
+    status: 'Available',
+    price: '',
+  });
+
+  // Fetch services from backend on component mount
+  useEffect(() => {
+    fetchServices();
+  }, []);
+
+  const fetchServices = async () => {
+    try {
+      const response = await fetch('http://localhost:8081/services');
+      const result = await response.json();
+      if (result.success) {
+        setServices(result.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch services:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleDeleteService = (id) => {
     setDeleteConfirm(id);
   };
 
-  const confirmDelete = (id) => {
-    setServices(services.filter((service) => service.id !== id));
-    setDeleteConfirm(null);
+  const confirmDelete = async (id) => {
+    try {
+      const response = await fetch(`http://localhost:8081/services/${id}`, {
+        method: 'DELETE',
+      });
+      const result = await response.json();
+      if (result.success) {
+        setServices(services.filter((service) => service.fld_serviceID !== id));
+        setDeleteConfirm(null);
+      } else {
+        alert('Failed to delete service: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Failed to delete service:', error);
+      alert('Failed to delete service');
+    }
   };
 
   const cancelDelete = () => {
@@ -57,40 +67,61 @@ function Services() {
   };
 
   const handleEditClick = (service) => {
-    setEditService(service.id);
-    setFormData({
-      name: service.name,
-      description: service.description,
-      status: service.status,
-      price: service.price,
+    setEditService(service.fld_serviceID);
+    setEditFormData({
+      name: service.fld_serviceName,
+      description: service.fld_description,
+      status: service.fld_serviceStatus,
+      price: service.fld_servicePrice,
     });
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (
-      formData.name &&
-      formData.description &&
-      formData.status &&
-      formData.price
+      editFormData.name &&
+      editFormData.description &&
+      editFormData.status &&
+      editFormData.price
     ) {
-      setServices(
-        services.map((service) =>
-          service.id === editService ? { ...service, ...formData } : service
-        )
-      );
-      setEditService(null);
-      setFormData({
-        name: '',
-        description: '',
-        status: 'Available',
-        price: '',
-      });
+      try {
+        const response = await fetch(
+          `http://localhost:8081/services/${editService}`,
+          {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(editFormData),
+          }
+        );
+        const result = await response.json();
+        if (result.success) {
+          fetchServices();
+          setEditService(null);
+          setEditFormData({
+            name: '',
+            description: '',
+            status: 'Available',
+            price: '',
+          });
+        } else {
+          alert('Failed to update service: ' + result.error);
+        }
+      } catch (error) {
+        console.error('Failed to update service:', error);
+        alert('Failed to update service');
+      }
     }
   };
 
   const handleCancelEdit = () => {
     setEditService(null);
-    setFormData({ name: '', description: '', status: 'Available', price: '' });
+    setEditFormData({
+      name: '',
+      description: '',
+      status: 'Available',
+      price: '',
+    });
   };
 
   const handleInputChange = (e) => {
@@ -101,7 +132,7 @@ function Services() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (
       formData.name &&
@@ -109,21 +140,29 @@ function Services() {
       formData.status &&
       formData.price
     ) {
-      const newService = {
-        id: services.length + 1,
-        name: formData.name,
-        description: formData.description,
-        status: formData.status,
-        price: formData.price,
-      };
-      setServices([...services, newService]);
-      setFormData({
-        name: '',
-        description: '',
-        status: 'Available',
-        price: '',
-      });
-      setShowForm(false);
+      try {
+        const response = await fetch('http://localhost:8081/services', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        });
+        const result = await response.json();
+        if (result.success) {
+          fetchServices();
+          setFormData({
+            name: '',
+            description: '',
+            status: 'Available',
+            price: '',
+          });
+          setShowForm(false);
+        }
+      } catch (error) {
+        console.error('Failed to create service:', error);
+        alert('Failed to create service');
+      }
     }
   };
 
@@ -159,38 +198,49 @@ function Services() {
             </tr>
           </thead>
           <tbody>
-            {services.map((service) => (
-              <tr key={service.id}>
-                <td className="service-name">{service.name}</td>
-                <td>{service.description}</td>
-                <td>
-                  <span
-                    className={`status-badge ${service.status
-                      .toLowerCase()
-                      .replace(' ', '-')}`}
-                  >
-                    {service.status}
-                  </span>
-                </td>
-                <td className="price-cell">{service.price}</td>
-                <td className="actions-cell">
-                  <button
-                    className="action-btn edit-btn"
-                    onClick={() => handleEditClick(service)}
-                    title="Edit"
-                  >
-                    ✏️
-                  </button>
-                  <button
-                    className="action-btn delete-btn"
-                    title="Delete"
-                    onClick={() => handleDeleteService(service.id)}
-                  >
-                    🗑️
-                  </button>
+            {services && services.length > 0 ? (
+              services.map((service, index) => (
+                <tr key={service.fld_serviceID || index}>
+                  <td className="service-name">{service.fld_serviceName}</td>
+                  <td>{service.fld_description}</td>
+                  <td>
+                    <span
+                      className={`status-badge ${service.fld_serviceStatus
+                        .toLowerCase()
+                        .replace(' ', '-')}`}
+                    >
+                      {service.fld_serviceStatus}
+                    </span>
+                  </td>
+                  <td className="price-cell">{service.fld_servicePrice}</td>
+                  <td className="actions-cell">
+                    <button
+                      className="action-btn edit-btn"
+                      onClick={() => handleEditClick(service)}
+                      title="Edit"
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      className="action-btn delete-btn"
+                      title="Delete"
+                      onClick={() => handleDeleteService(service.fld_serviceID)}
+                    >
+                      🗑️
+                    </button>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td
+                  colSpan="5"
+                  style={{ textAlign: 'center', padding: '20px' }}
+                >
+                  No services available
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>
@@ -320,9 +370,9 @@ function Services() {
                 <label>Service Name</label>
                 <input
                   type="text"
-                  value={formData.name}
+                  value={editFormData.name}
                   onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
+                    setEditFormData({ ...editFormData, name: e.target.value })
                   }
                   placeholder="Enter service name"
                 />
@@ -330,9 +380,12 @@ function Services() {
               <div className="form-group">
                 <label>Description</label>
                 <textarea
-                  value={formData.description}
+                  value={editFormData.description}
                   onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
+                    setEditFormData({
+                      ...editFormData,
+                      description: e.target.value,
+                    })
                   }
                   placeholder="Enter service description"
                   rows="3"
@@ -341,9 +394,9 @@ function Services() {
               <div className="form-group">
                 <label>Service Status</label>
                 <select
-                  value={formData.status}
+                  value={editFormData.status}
                   onChange={(e) =>
-                    setFormData({ ...formData, status: e.target.value })
+                    setEditFormData({ ...editFormData, status: e.target.value })
                   }
                 >
                   <option value="Available">Available</option>
@@ -354,9 +407,9 @@ function Services() {
                 <label>Price</label>
                 <input
                   type="text"
-                  value={formData.price}
+                  value={editFormData.price}
                   onChange={(e) =>
-                    setFormData({ ...formData, price: e.target.value })
+                    setEditFormData({ ...editFormData, price: e.target.value })
                   }
                   placeholder="e.g., $15.00"
                 />
