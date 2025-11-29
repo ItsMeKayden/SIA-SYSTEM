@@ -49,12 +49,48 @@ function AdminOrders() {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [viewOrder, setViewOrder] = useState(null);
   const [editOrder, setEditOrder] = useState(null);
+  const [showAddForm, setShowAddForm] = useState(false);
   const [editFormData, setEditFormData] = useState({
     customer: '',
     date: '',
     items: '',
     total: '',
   });
+  const [newOrderForm, setNewOrderForm] = useState({
+    customer: '',
+    date: '',
+    items: '',
+    status: 'pending',
+    selectedServices: [],
+    total: '$0.00',
+  });
+
+  const [services] = useState([
+    {
+      id: 1,
+      name: 'Wash & Fold',
+      price: 15.0,
+      status: 'Available',
+    },
+    {
+      id: 2,
+      name: 'Dry Cleaning',
+      price: 25.0,
+      status: 'Available',
+    },
+    {
+      id: 3,
+      name: 'Iron & Press',
+      price: 10.0,
+      status: 'Available',
+    },
+    {
+      id: 4,
+      name: 'Express Service',
+      price: 35.0,
+      status: 'Not Available',
+    },
+  ]);
 
   const ordersData = orders;
 
@@ -118,6 +154,79 @@ function AdminOrders() {
     setDeleteConfirm(null);
   };
 
+  const handleAddOrderClick = () => {
+    setShowAddForm(true);
+  };
+
+  const handleServiceToggle = (serviceId) => {
+    setNewOrderForm((prev) => {
+      const isSelected = prev.selectedServices.includes(serviceId);
+      const updatedServices = isSelected
+        ? prev.selectedServices.filter((id) => id !== serviceId)
+        : [...prev.selectedServices, serviceId];
+
+      // Calculate total price
+      const totalPrice = updatedServices.reduce((sum, id) => {
+        const service = services.find((s) => s.id === id);
+        return sum + (service ? service.price : 0);
+      }, 0);
+
+      // Build items description
+      const itemsDescription = updatedServices
+        .map((id) => services.find((s) => s.id === id)?.name)
+        .join(', ');
+
+      return {
+        ...prev,
+        selectedServices: updatedServices,
+        items: itemsDescription || '',
+        total: `$${totalPrice.toFixed(2)}`,
+      };
+    });
+  };
+
+  const handleCloseAddForm = () => {
+    setShowAddForm(false);
+    setNewOrderForm({
+      customer: '',
+      date: '',
+      items: '',
+      status: 'pending',
+      selectedServices: [],
+      total: '$0.00',
+    });
+  };
+
+  const handleAddFormChange = (e) => {
+    const { name, value } = e.target;
+    setNewOrderForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmitAddOrder = (e) => {
+    e.preventDefault();
+    if (
+      newOrderForm.customer &&
+      newOrderForm.date &&
+      newOrderForm.selectedServices.length > 0
+    ) {
+      const newOrder = {
+        id: `ORD-${String(
+          Math.max(...orders.map((o) => parseInt(o.id.split('-')[1])), 0) + 1
+        ).padStart(3, '0')}`,
+        customer: newOrderForm.customer,
+        date: newOrderForm.date,
+        items: newOrderForm.items,
+        status: newOrderForm.status,
+        total: newOrderForm.total,
+      };
+      setOrders([...orders, newOrder]);
+      handleCloseAddForm();
+    }
+  };
+
   const filteredOrders = ordersData.filter(
     (order) =>
       order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -142,8 +251,13 @@ function AdminOrders() {
   return (
     <section className="admin-orders-section">
       <div className="section-header">
-        <h3>Order Management</h3>
-        <p>Manage and track all customer orders</p>
+        <div className="header-content">
+          <h3>Order Management</h3>
+          <p>Manage and track all customer orders</p>
+        </div>
+        <button className="add-order-btn" onClick={handleAddOrderClick}>
+          ➕ Add Order
+        </button>
       </div>
 
       <div className="search-box">
@@ -377,6 +491,123 @@ function AdminOrders() {
                 </button>
                 <button type="submit" className="btn-submit">
                   Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showAddForm && (
+        <div className="modal-overlay" onClick={handleCloseAddForm}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Add New Order</h3>
+              <button className="close-btn" onClick={handleCloseAddForm}>
+                ✕
+              </button>
+            </div>
+
+            <form className="add-order-form" onSubmit={handleSubmitAddOrder}>
+              <div className="form-group">
+                <label htmlFor="add-customer">Customer Name</label>
+                <input
+                  type="text"
+                  id="add-customer"
+                  name="customer"
+                  value={newOrderForm.customer}
+                  onChange={handleAddFormChange}
+                  placeholder="Enter customer name"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="add-date">Order Date</label>
+                <input
+                  type="date"
+                  id="add-date"
+                  name="date"
+                  value={newOrderForm.date}
+                  onChange={handleAddFormChange}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Select Services</label>
+                <div className="services-checkboxes">
+                  {services.map((service) => (
+                    <label key={service.id} className="service-checkbox">
+                      <input
+                        type="checkbox"
+                        checked={newOrderForm.selectedServices.includes(
+                          service.id
+                        )}
+                        onChange={() => handleServiceToggle(service.id)}
+                        disabled={service.status === 'Not Available'}
+                      />
+                      <span className="checkbox-label">
+                        {service.name} - ${service.price.toFixed(2)}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="add-items">Items (Auto-populated)</label>
+                <textarea
+                  id="add-items"
+                  name="items"
+                  value={newOrderForm.items}
+                  placeholder="Services will appear here"
+                  rows="3"
+                  readOnly
+                  className="read-only-field"
+                ></textarea>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="add-status">Status</label>
+                <select
+                  id="add-status"
+                  name="status"
+                  value={newOrderForm.status}
+                  onChange={handleAddFormChange}
+                >
+                  <option value="pending">Pending</option>
+                  <option value="processing">Processing</option>
+                  <option value="ready">Ready</option>
+                  <option value="completed">Completed</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="add-total">
+                  Total Amount (Auto-calculated)
+                </label>
+                <input
+                  type="text"
+                  id="add-total"
+                  name="total"
+                  value={newOrderForm.total}
+                  placeholder="$0.00"
+                  readOnly
+                  className="read-only-field"
+                />
+              </div>
+
+              <div className="form-actions">
+                <button
+                  type="button"
+                  className="btn-cancel"
+                  onClick={handleCloseAddForm}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn-submit">
+                  Add Order
                 </button>
               </div>
             </form>
