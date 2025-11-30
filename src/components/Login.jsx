@@ -78,8 +78,8 @@ function Login({ onSwitchToRegister, onLoginSuccess }) {
               {isAdmin ? 'Admin Email' : 'Email'}
             </label>
             <input
-              type="text"
-              id="username"
+              type="email"
+              id="email"
               placeholder={isAdmin ? "Enter admin email" : "Enter your email"}
               value={email}
               onChange={(e) => setUsername(e.target.value)}
