@@ -8,6 +8,7 @@ function Profile() {
     phone: '',
     address: '',
   });
+  const [userId, setUserId] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // Get the logged-in user's email from localStorage
@@ -29,18 +30,26 @@ function Profile() {
         return;
       }
 
-      const response = await fetch(`http://localhost:8081/getuser/${userEmail}`);
-      const data = await response.json();
+      // GET DATA FROM tbl_user
+      const userResponse = await fetch(`http://localhost:8081/getuser/${userEmail}`);
+      const userData = await userResponse.json();
       
-      if (data.success) {
+      if (userData.success) {
+        // Store userId for later use
+        setUserId(userData.user.fld_userID);
+        
+        // GET ADDRESS FROM tbl_profiles using the userId
+        const profileResponse = await fetch(`http://localhost:8081/getprofile/${userData.user.fld_userID}`);
+        const profileData = await profileResponse.json();
+        
         setProfileData({
-          fullName: data.user.fld_username || '',
-          email: data.user.fld_email || '',
-          phone: data.user.fld_contact || '',
-          address: '', // You'll need to fetch this from tbl_address separately
+          fullName: userData.user.fld_username || '',
+          email: userData.user.fld_email || '',
+          phone: userData.user.fld_contact || '',
+          address: profileData.success ? profileData.profile.fld_address : '',
         });
       } else {
-        console.error('Failed to fetch user data:', data.error);
+        console.error('Failed to fetch user data:', userData.error);
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
@@ -60,7 +69,9 @@ function Profile() {
   const handleSave = async () => {
     try {
       const userEmail = getLoggedInUserEmail();
-      const response = await fetch('http://localhost:8081/updateuser', {
+      
+      // FOR UPDATING tbl_user
+      const userResponse = await fetch('http://localhost:8081/updateuser', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -71,14 +82,31 @@ function Profile() {
         })
       });
       
-      const data = await response.json();
+      const userData = await userResponse.json();
       
-      if (data.success) {
-        alert('Profile changes saved successfully!');
-        // Refresh data to show updated information
-        fetchUserData();
+      if (userData.success) {
+        // FOR UPDATING tbl_profiles using userId
+        const profileResponse = await fetch('http://localhost:8081/updateprofile', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: userId,
+            address: profileData.address
+          })
+        });
+        
+        const profileDataResult = await profileResponse.json();
+        
+        if (profileDataResult.success) {
+          alert('Profile changes saved successfully!');
+          fetchUserData();
+        } else {
+          alert('User data saved but profile address update failed: ' + profileDataResult.error);
+        }
       } else {
-        alert('Failed to save changes: ' + data.error);
+        alert('Failed to save changes: ' + userData.error);
       }
     } catch (error) {
       console.error('Error saving profile:', error);

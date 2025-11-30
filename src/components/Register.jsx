@@ -46,6 +46,7 @@ function Register({ onSwitchToLogin }) {
           password: formData.password,
           email: formData.email,
           contact: formData.phoneNumber,
+          address: formData.address,
         }),
       });
 

@@ -133,7 +133,7 @@ app.post('/loginuser', (req, res) => {
 app.get('/getuser/:email', (req, res) => {
   const userEmail = req.params.email;
   
-  const sql = 'SELECT fld_username, fld_email, fld_contact, fld_address FROM tbl_user WHERE fld_email = ?';
+  const sql = 'SELECT fld_userID, fld_username, fld_email, fld_contact FROM tbl_user WHERE fld_email = ?';
   
   db.query(sql, [userEmail], (err, result) => {
     if (err) {
@@ -145,6 +145,44 @@ app.get('/getuser/:email', (req, res) => {
     }
     
     res.json({ success: true, user: result[0] });
+  });
+});
+
+// FOR GETTING ADDRESS FROM TBL_PROFILES
+app.get('/getprofile/:userId', (req, res) => {
+  const userId = req.params.userId;
+  
+  const sql = 'SELECT fld_address FROM tbl_profiles WHERE fld_userID = ?';
+  
+  db.query(sql, [userId], (err, result) => {
+    if (err) {
+      return res.json({ success: false, error: 'Database error: ' + err.message });
+    }
+    
+    if (result.length === 0) {
+      return res.json({ success: false, error: 'Profile not found' });
+    }
+    
+    res.json({ success: true, profile: result[0] });
+  });
+});
+
+// FOR UPDATING PROFILE ADDRESS
+app.put('/updateprofile', (req, res) => {
+  const { userId, address } = req.body;
+  
+  const sql = `
+    INSERT INTO tbl_profiles (fld_userID, fld_address) 
+    VALUES (?, ?) 
+    ON DUPLICATE KEY UPDATE fld_address = ?
+  `;
+  
+  db.query(sql, [userId, address, address], (err, result) => {
+    if (err) {
+      return res.json({ success: false, error: 'Profile update failed: ' + err.message });
+    }
+    
+    res.json({ success: true, message: 'Profile updated successfully' });
   });
 });
 
