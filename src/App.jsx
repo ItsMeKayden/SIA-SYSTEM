@@ -31,6 +31,10 @@ function App() {
     setUserData(null);
   };
 
+  const refreshUserData = (newUserData) => {
+    setUserData(newUserData);
+  };
+
   return (
     <>
       {currentPage === 'login' ? (
@@ -44,11 +48,13 @@ function App() {
         <AdminDashboard 
           userData={userData}
           onLogout={handleLogout}
+          onRefreshUserData={refreshUserData}
         />
       ) : (
         <Dashboard
           userData={userData}
           onLogout={handleLogout}
+          onRefreshUserData={refreshUserData}
         />
       )}
     </>

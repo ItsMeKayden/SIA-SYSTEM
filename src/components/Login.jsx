@@ -9,53 +9,53 @@ function Login({ onSwitchToRegister, onLoginSuccess }) {
   const [message, setMessage] = useState('');
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  e.preventDefault();
+  setLoading(true);
 
-    try {
-      const endpoint = isAdmin
-        ? 'http://localhost:8081/loginadmin'
-        : 'http://localhost:8081/loginuser';
+  try {
+    const endpoint = isAdmin
+      ? 'http://localhost:8081/loginadmin'
+      : 'http://localhost:8081/loginuser';
 
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: email,
-          password: password,
-        }),
-      });
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        username: email,
+        password: password,
+      }),
+    });
 
-      const result = await response.json();
+    const result = await response.json();
 
-      if (result.success) {
-        setLoading(false);
-        
-        // Store user email in localStorage
-        localStorage.setItem('userEmail', email);
-        
-        // Store other user data if available in the response
-        if (result.user) {
-          localStorage.setItem('userData', JSON.stringify(result.user));
-        }
-        
-        // Store user type (admin or regular user)
-        localStorage.setItem('userType', isAdmin ? 'admin' : 'user');
-        
-        if (onLoginSuccess) {
-          onLoginSuccess(isAdmin);
-        }
-      } else {
-        setLoading(false);
-        alert('Invalid email or password');
-      }
-    } catch (error) {
+    if (result.success) {
       setLoading(false);
-      alert('Cannot connect to server. Make sure backend is running.');
+      
+      // Store user email in localStorage
+      localStorage.setItem('userEmail', email);
+      
+      // Store user data from the response
+      if (result.user) {
+        localStorage.setItem('userData', JSON.stringify(result.user));
+      }
+      
+      // Store user type (admin or regular user)
+      localStorage.setItem('userType', isAdmin ? 'admin' : 'user');
+      
+      if (onLoginSuccess) {
+        onLoginSuccess(isAdmin, result.user); // ✅ Pass user data here
+      }
+    } else {
+      setLoading(false);
+      alert('Invalid email or password');
     }
-  };
+  } catch (error) {
+    setLoading(false);
+    alert('Cannot connect to server. Make sure backend is running.');
+  }
+};
 
   return (
     <div className="login-page">

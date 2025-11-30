@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import '../styles/Profile.css';
 
-function Profile() {
+function Profile({ onRefreshUserData }) {
   const [profileData, setProfileData] = useState({
     fullName: '',
     email: '',
@@ -101,6 +101,17 @@ function Profile() {
         
         if (profileDataResult.success) {
           alert('Profile changes saved successfully!');
+
+          if (onRefreshUserData) {
+          // Fetch the updated user data
+            const updatedResponse = await fetch(`http://localhost:8081/getuser/${userEmail}`);
+            const updatedData = await updatedResponse.json();
+          
+            if (updatedData.success) {
+              onRefreshUserData(updatedData.user); // Update parent state
+          }
+        }
+          
           fetchUserData();
         } else {
           alert('User data saved but profile address update failed: ' + profileDataResult.error);

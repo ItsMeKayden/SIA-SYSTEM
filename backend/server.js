@@ -95,7 +95,7 @@ app.post('/loginadmin', (req, res) => {
   console.log('Admin login attempt:', { email: username, password });
 
   const sql =
-    'SELECT * FROM tbl_admin WHERE fld_email = ? AND fld_password = ?';
+    'SELECT fld_adminID, fld_username, fld_email FROM tbl_admin WHERE fld_email = ? AND fld_password = ?';
 
   db.query(sql, [username, password], (err, result) => {
     if (err) {
@@ -104,7 +104,15 @@ app.post('/loginadmin', (req, res) => {
     } else {
       console.log('Query result:', result);
       if (result.length > 0) {
-        res.json({ success: true, message: 'Admin login successful' });
+        res.json({ 
+          success: true, 
+          message: 'Admin login successful',
+          user: {
+            fld_username: result[0].fld_username,
+            fld_email: result[0].fld_email,
+            fld_adminID: result[0].fld_adminID
+          }
+        });
       } else {
         res.json({ success: false, error: 'Invalid email or password' });
       }
@@ -116,15 +124,31 @@ app.post('/loginadmin', (req, res) => {
 app.post('/loginuser', (req, res) => {
   const { username, password } = req.body;
 
-  const sql = 'SELECT * FROM tbl_user WHERE fld_email = ? AND fld_password = ?';
+  console.log('User login attempt:', { email: username, password });
+
+  const sql =
+    'SELECT fld_userID, fld_username, fld_email, fld_contact FROM tbl_user WHERE fld_email = ? AND fld_password = ?';
 
   db.query(sql, [username, password], (err, result) => {
     if (err) {
+      console.log('Database error:', err.message);
       res.json({ success: false, error: 'Login failed: ' + err.message });
-    } else if (result.length > 0) {
-      res.json({ success: true, message: 'User login successful' });
     } else {
-      res.json({ success: false, error: 'Invalid email or password' });
+      console.log('Query result:', result);
+      if (result.length > 0) {
+        res.json({ 
+          success: true, 
+          message: 'User login successful',
+          user: {
+            fld_username: result[0].fld_username,
+            fld_email: result[0].fld_email,
+            fld_contact: result[0].fld_contact,
+            fld_userID: result[0].fld_userID
+          }
+        });
+      } else {
+        res.json({ success: false, error: 'Invalid email or password' });
+      }
     }
   });
 });
