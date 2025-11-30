@@ -2,14 +2,45 @@ import { useState } from 'react';
 import '../styles/Login.css';
 
 function Login({ onSwitchToRegister, onLoginSuccess }) {
-  const [email, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+    setMessage('');
+
+    // Email validation
+    if (!email.trim()) {
+      setError('Email is required');
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
+    // Password validation
+    if (!password) {
+      setError('Password is required');
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -40,23 +71,30 @@ function Login({ onSwitchToRegister, onLoginSuccess }) {
         } else if (!isAdmin && result.userID) {
           // Store user ID if logging in as regular user
           console.log('Storing userID:', result.userID);
-          localStorage.setItem('userID', result.userID);
-          localStorage.setItem('username', result.username);
+          console.log('Storing userEmail:', email);
+          localStorage.setItem('userID', String(result.userID));
+          localStorage.setItem('username', String(result.username));
+          localStorage.setItem('userEmail', String(email));
+          console.log('LocalStorage after setting:', {
+            userID: localStorage.getItem('userID'),
+            username: localStorage.getItem('username'),
+            userEmail: localStorage.getItem('userEmail'),
+          });
         }
-        
+
         // Store user type (admin or regular user)
         localStorage.setItem('userType', isAdmin ? 'admin' : 'user');
-        
+
         if (onLoginSuccess) {
           onLoginSuccess(isAdmin);
         }
       } else {
         setLoading(false);
-        alert('Invalid email or password');
+        setError('Invalid email or password');
       }
     } catch (error) {
       setLoading(false);
-      alert('Cannot connect to server. Make sure backend is running.');
+      setError('Cannot connect to server. Make sure backend is running.');
     }
   };
 
@@ -69,6 +107,7 @@ function Login({ onSwitchToRegister, onLoginSuccess }) {
           <p className="tagline">Smart Laundry Management System</p>
         </div>
 
+        {error && <div className="error-message">{error}</div>}
         {message && (
           <div
             className={`message ${
