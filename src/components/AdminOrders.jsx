@@ -184,28 +184,8 @@ function AdminOrders() {
       console.log('Response from server:', result);
 
       if (result.success) {
-        // Get the service name for the selected service
-        const selectedServiceId = editFormData.selectedServices[0];
-        const selectedService = services.find(
-          (s) => s.fld_serviceID === selectedServiceId
-        );
-
-        // Update local state with full order data
-        setOrders(
-          orders.map((order) =>
-            order.fld_orderID === editOrder
-              ? {
-                  ...order,
-                  fld_serviceID: selectedServiceId,
-                  fld_serviceName: selectedService?.fld_serviceName || '-',
-                  fld_orderDate: editFormData.orderDate,
-                  fld_orderStatus: editFormData.status,
-                  fld_amount: editFormData.amount,
-                  fld_items: editFormData.items,
-                }
-              : order
-          )
-        );
+        // Refresh orders from backend to ensure latest data
+        await fetchOrders();
         setEditOrder(null);
         alert('Order updated successfully!');
       } else {

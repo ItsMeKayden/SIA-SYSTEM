@@ -1,98 +1,60 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import '../styles/Orders.css';
 
 function Orders() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [orders, setOrders] = useState([
-    {
-      id: 1,
-      customer: 'John Doe',
-      date: '2024-01-15',
-      items: 'Laundry Service, Ironing',
-      status: 'completed',
-      total: '$45.00',
-    },
-    {
-      id: 2,
-      customer: 'Jane Smith',
-      date: '2024-01-16',
-      items: 'Dry Cleaning',
-      status: 'processing',
-      total: '$30.00',
-    },
-    {
-      id: 3,
-      customer: 'Mike Johnson',
-      date: '2024-01-17',
-      items: 'Laundry Service',
-      status: 'pending',
-      total: '$25.00',
-    },
-  ]);
-  const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({
-    customer: '',
-    date: '',
-    items: '',
-    status: 'pending',
-    total: '',
-  });
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [userID, setUserID] = useState(null);
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
+  // Fetch orders on component mount
+  useEffect(() => {
+    // Get userID from localStorage
+    const storedUserID = localStorage.getItem('userID');
+    console.log('Orders component mounted. Stored userID:', storedUserID);
+    console.log('All localStorage items:', JSON.stringify(localStorage));
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (
-      formData.customer &&
-      formData.date &&
-      formData.items &&
-      formData.total
-    ) {
-      const newOrder = {
-        id: Math.max(...orders.map((o) => o.id), 0) + 1,
-        customer: formData.customer,
-        date: formData.date,
-        items: formData.items,
-        status: formData.status,
-        total: `$${parseFloat(formData.total).toFixed(2)}`,
-      };
-      setOrders([...orders, newOrder]);
-      setFormData({
-        customer: '',
-        date: '',
-        items: '',
-        status: 'pending',
-        total: '',
-      });
-      setShowForm(false);
+    if (storedUserID) {
+      setUserID(storedUserID);
+      fetchUserOrders(storedUserID);
     } else {
-      alert('Please fill in all required fields');
+      setLoading(false);
+      console.warn('No userID found in localStorage');
+      alert('Please log in first');
+    }
+  }, []);
+
+  const fetchUserOrders = async (userId) => {
+    try {
+      const response = await fetch(
+        `http://localhost:8081/orders?userID=${userId}`
+      );
+      const result = await response.json();
+      if (result.success) {
+        setOrders(result.data);
+      } else {
+        console.error('Failed to fetch orders:', result.error);
+      }
+    } catch (error) {
+      console.error('Failed to fetch orders:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleCloseForm = () => {
-    setShowForm(false);
-    setFormData({
-      customer: '',
-      date: '',
-      items: '',
-      status: 'pending',
-      total: '',
-    });
-  };
-
-  const filteredOrders = orders.filter((order) =>
-    order.id.toString().toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredOrders = orders.filter(
+    (order) =>
+      (order.fld_orderID &&
+        order.fld_orderID
+          .toString()
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase())) ||
+      (order.fld_items &&
+        order.fld_items.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const getStatusColor = (status) => {
-    switch (status) {
+    switch (status?.toLowerCase()) {
       case 'processing':
         return '#3498db';
       case 'ready':
@@ -106,19 +68,29 @@ function Orders() {
     }
   };
 
+  if (loading) {
+    return (
+      <section className="orders-section">
+        <p style={{ textAlign: 'center', padding: '20px' }}>
+          Loading orders...
+        </p>
+      </section>
+    );
+  }
+
   return (
     <section className="orders-section">
       <div className="orders-header">
         <div className="header-content">
-          <h3>Order Management</h3>
-          <p className="orders-subtitle">View and manage your orders</p>
+          <h3>My Orders</h3>
+          <p className="orders-subtitle">View and track your orders</p>
         </div>
       </div>
 
       <div className="search-box">
         <input
           type="text"
-          placeholder="Search orders by ID..."
+          placeholder="Search orders by ID or items..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="search-input"
@@ -130,8 +102,8 @@ function Orders() {
           <thead>
             <tr>
               <th>Order ID</th>
-              <th>Customer</th>
               <th>Date</th>
+              <th>Service</th>
               <th>Items</th>
               <th>Status</th>
               <th>Total</th>
@@ -140,20 +112,24 @@ function Orders() {
           <tbody>
             {filteredOrders && filteredOrders.length > 0 ? (
               filteredOrders.map((order) => (
-                <tr key={order.id}>
-                  <td className="order-id">{order.id}</td>
-                  <td>{order.customer}</td>
-                  <td>{new Date(order.date).toLocaleDateString()}</td>
-                  <td>{order.items}</td>
+                <tr key={order.fld_orderID}>
+                  <td className="order-id">{order.fld_orderID}</td>
+                  <td>{new Date(order.fld_orderDate).toLocaleDateString()}</td>
+                  <td>{order.fld_serviceName || '-'}</td>
+                  <td>{order.fld_items || '-'}</td>
                   <td>
                     <span
                       className="status-badge"
-                      style={{ backgroundColor: getStatusColor(order.status) }}
+                      style={{
+                        backgroundColor: getStatusColor(order.fld_orderStatus),
+                      }}
                     >
-                      {order.status}
+                      {order.fld_orderStatus}
                     </span>
                   </td>
-                  <td className="total">{order.total}</td>
+                  <td className="total">
+                    ${parseFloat(order.fld_amount).toFixed(2)}
+                  </td>
                 </tr>
               ))
             ) : (
@@ -169,101 +145,6 @@ function Orders() {
           </tbody>
         </table>
       </div>
-
-      {showForm && (
-        <div className="modal-overlay" onClick={handleCloseForm}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Add New Order</h3>
-              <button className="close-btn" onClick={handleCloseForm}>
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="order-form">
-              <div className="form-group">
-                <label htmlFor="customer">Customer Name</label>
-                <input
-                  type="text"
-                  id="customer"
-                  name="customer"
-                  placeholder="Enter customer name"
-                  value={formData.customer}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="date">Order Date</label>
-                <input
-                  type="date"
-                  id="date"
-                  name="date"
-                  value={formData.date}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="items">Items/Services</label>
-                <input
-                  type="text"
-                  id="items"
-                  name="items"
-                  placeholder="Enter items or services"
-                  value={formData.items}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="status">Status</label>
-                <select
-                  id="status"
-                  name="status"
-                  value={formData.status}
-                  onChange={handleInputChange}
-                >
-                  <option value="pending">Pending</option>
-                  <option value="processing">Processing</option>
-                  <option value="ready">Ready</option>
-                  <option value="completed">Completed</option>
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="total">Total Amount</label>
-                <input
-                  type="number"
-                  id="total"
-                  name="total"
-                  placeholder="Enter total amount"
-                  value={formData.total}
-                  onChange={handleInputChange}
-                  step="0.01"
-                  required
-                />
-              </div>
-
-              <div className="form-actions">
-                <button
-                  type="button"
-                  className="btn-cancel"
-                  onClick={handleCloseForm}
-                >
-                  Cancel
-                </button>
-                <button type="submit" className="btn-submit">
-                  Create Order
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </section>
   );
 }

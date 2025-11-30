@@ -32,13 +32,16 @@ function Login({ onSwitchToRegister, onLoginSuccess }) {
 
       if (result.success) {
         setLoading(false);
-        
-        // Store user email in localStorage
-        localStorage.setItem('userEmail', email);
-        
-        // Store other user data if available in the response
-        if (result.user) {
-          localStorage.setItem('userData', JSON.stringify(result.user));
+        console.log('Login successful, result:', result);
+        // Store admin ID if logging in as admin
+        if (isAdmin && result.adminID) {
+          console.log('Storing adminID:', result.adminID);
+          localStorage.setItem('adminID', result.adminID);
+        } else if (!isAdmin && result.userID) {
+          // Store user ID if logging in as regular user
+          console.log('Storing userID:', result.userID);
+          localStorage.setItem('userID', result.userID);
+          localStorage.setItem('username', result.username);
         }
         
         // Store user type (admin or regular user)
