@@ -63,30 +63,21 @@ function Login({ onSwitchToRegister, onLoginSuccess }) {
 
       if (result.success) {
         setLoading(false);
-        console.log('Login successful, result:', result);
-        // Store admin ID if logging in as admin
-        if (isAdmin && result.adminID) {
-          console.log('Storing adminID:', result.adminID);
-          localStorage.setItem('adminID', result.adminID);
-        } else if (!isAdmin && result.userID) {
-          // Store user ID if logging in as regular user
-          console.log('Storing userID:', result.userID);
-          console.log('Storing userEmail:', email);
-          localStorage.setItem('userID', String(result.userID));
-          localStorage.setItem('username', String(result.username));
-          localStorage.setItem('userEmail', String(email));
-          console.log('LocalStorage after setting:', {
-            userID: localStorage.getItem('userID'),
-            username: localStorage.getItem('username'),
-            userEmail: localStorage.getItem('userEmail'),
-          });
+        
+        // Store user email and userID in localStorage
+        localStorage.setItem('userID', result.user.userID);
+        localStorage.setItem('userEmail', email);
+        
+        // Store user data from the response
+        if (result.user) {
+          localStorage.setItem('userData', JSON.stringify(result.user));
         }
 
         // Store user type (admin or regular user)
         localStorage.setItem('userType', isAdmin ? 'admin' : 'user');
 
         if (onLoginSuccess) {
-          onLoginSuccess(isAdmin);
+          onLoginSuccess(isAdmin, result.user);
         }
       } else {
         setLoading(false);
@@ -126,7 +117,7 @@ function Login({ onSwitchToRegister, onLoginSuccess }) {
             <input
               type="email"
               id="email"
-              placeholder={isAdmin ? 'Enter admin email' : 'Enter your email'}
+              placeholder={isAdmin ? "Enter admin email" : "Enter your email"}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required

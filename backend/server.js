@@ -132,7 +132,7 @@ app.post('/loginadmin', (req, res) => {
   console.log('Admin login attempt:', { email, password });
 
   const sql =
-    'SELECT * FROM tbl_admin WHERE fld_email = ? AND fld_password = ?';
+    'SELECT fld_adminID, fld_username, fld_email FROM tbl_admin WHERE fld_email = ? AND fld_password = ?';
 
   db.query(sql, [email, password], (err, result) => {
     if (err) {
@@ -141,10 +141,14 @@ app.post('/loginadmin', (req, res) => {
     } else {
       console.log('Query result:', result);
       if (result.length > 0) {
-        res.json({
-          success: true,
+        res.json({ 
+          success: true, 
           message: 'Admin login successful',
-          adminID: result[0].fld_adminID,
+          user: {
+            fld_username: result[0].fld_username,
+            fld_email: result[0].fld_email,
+            fld_adminID: result[0].fld_adminID
+          }
         });
       } else {
         res.json({ success: false, error: 'Invalid email or password' });
@@ -157,20 +161,31 @@ app.post('/loginadmin', (req, res) => {
 app.post('/loginuser', (req, res) => {
   const { email, password } = req.body;
 
-  const sql = 'SELECT * FROM tbl_user WHERE fld_email = ? AND fld_password = ?';
+  console.log('User login attempt:', { email: email, password });
+
+  const sql =
+    'SELECT fld_userID, fld_username, fld_email, fld_contact FROM tbl_user WHERE fld_email = ? AND fld_password = ?';
 
   db.query(sql, [email, password], (err, result) => {
     if (err) {
+      console.log('Database error:', err.message);
       res.json({ success: false, error: 'Login failed: ' + err.message });
-    } else if (result.length > 0) {
-      res.json({
-        success: true,
-        message: 'User login successful',
-        userID: result[0].fld_userID,
-        username: result[0].fld_username,
-      });
     } else {
-      res.json({ success: false, error: 'Invalid email or password' });
+      console.log('Query result:', result);
+      if (result.length > 0) {
+        res.json({ 
+          success: true, 
+          message: 'User login successful',
+          user: {
+            fld_username: result[0].fld_username,
+            fld_email: result[0].fld_email,
+            fld_contact: result[0].fld_contact,
+            fld_userID: result[0].fld_userID
+          }
+        });
+      } else {
+        res.json({ success: false, error: 'Invalid email or password' });
+      }
     }
   });
 });
@@ -285,6 +300,44 @@ app.put('/updateuser', (req, res) => {
     }
 
     res.json({ success: true, message: 'Profile updated successfully' });
+  });
+});
+
+// FOR VERIFYING OLD PASSWORD
+app.post('/verifypassword', (req, res) => {
+  const { email, oldPassword } = req.body;
+  
+  const sql = 'SELECT fld_password FROM tbl_user WHERE fld_email = ? AND fld_password = ?';
+  
+  db.query(sql, [email, oldPassword], (err, result) => {
+    if (err) {
+      return res.json({ success: false, error: 'Verification failed: ' + err.message });
+    }
+    
+    if (result.length === 0) {
+      return res.json({ success: false, error: 'Old password is incorrect' });
+    }
+    
+    res.json({ success: true, message: 'Password verified successfully' });
+  });
+});
+
+// FOR UPDATING PASSWORD
+app.put('/updatepassword', (req, res) => {
+  const { email, newPassword } = req.body;
+  
+  const sql = 'UPDATE tbl_user SET fld_password = ? WHERE fld_email = ?';
+  
+  db.query(sql, [newPassword, email], (err, result) => {
+    if (err) {
+      return res.json({ success: false, error: 'Password update failed: ' + err.message });
+    }
+    
+    if (result.affectedRows === 0) {
+      return res.json({ success: false, error: 'User not found' });
+    }
+    
+    res.json({ success: true, message: 'Password updated successfully' });
   });
 });
 
