@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import '../styles/Services.css';
+import { showSuccessToast, showErrorToast } from '../utils/toastUtils';
 
 function Services() {
   const [services, setServices] = useState([]);
@@ -8,6 +9,7 @@ function Services() {
   const [showForm, setShowForm] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [editService, setEditService] = useState(null);
+  const [error, setError] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -20,6 +22,21 @@ function Services() {
     status: 'Available',
     price: '',
   });
+
+  // Validation functions
+  const validateServiceName = (name) => {
+    return name.trim().length >= 3;
+  };
+
+  const validateDescription = (description) => {
+    return description.trim().length >= 10;
+  };
+
+  const validatePrice = (price) => {
+    const priceRegex = /^\d+(\.\d{1,2})?$/;
+    const parsedPrice = parseFloat(price);
+    return priceRegex.test(price) && parsedPrice > 0;
+  };
 
   // Fetch services from backend on component mount
   useEffect(() => {
@@ -53,12 +70,13 @@ function Services() {
       if (result.success) {
         setServices(services.filter((service) => service.fld_serviceID !== id));
         setDeleteConfirm(null);
+        showSuccessToast('Service deleted successfully');
       } else {
-        alert('Failed to delete service: ' + result.error);
+        showErrorToast('Failed to delete service: ' + result.error);
       }
     } catch (error) {
       console.error('Failed to delete service:', error);
-      alert('Failed to delete service');
+      showErrorToast('Failed to delete service');
     }
   };
 
@@ -77,40 +95,72 @@ function Services() {
   };
 
   const handleSaveEdit = async () => {
-    if (
-      editFormData.name &&
-      editFormData.description &&
-      editFormData.status &&
-      editFormData.price
-    ) {
-      try {
-        const response = await fetch(
-          `http://localhost:8081/services/${editService}`,
-          {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(editFormData),
-          }
-        );
-        const result = await response.json();
-        if (result.success) {
-          fetchServices();
-          setEditService(null);
-          setEditFormData({
-            name: '',
-            description: '',
-            status: 'Available',
-            price: '',
-          });
-        } else {
-          alert('Failed to update service: ' + result.error);
+    setError('');
+
+    // Validation checks
+    if (!editFormData.name.trim()) {
+      setError('Service name is required');
+      return;
+    }
+
+    if (!validateServiceName(editFormData.name)) {
+      setError('Service name must be at least 3 characters');
+      return;
+    }
+
+    if (!editFormData.description.trim()) {
+      setError('Description is required');
+      return;
+    }
+
+    if (!validateDescription(editFormData.description)) {
+      setError('Description must be at least 10 characters');
+      return;
+    }
+
+    if (!editFormData.price) {
+      setError('Price is required');
+      return;
+    }
+
+    if (!validatePrice(editFormData.price)) {
+      setError('Please enter a valid price (e.g., 15.00)');
+      return;
+    }
+
+    if (!editFormData.status) {
+      setError('Status is required');
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `http://localhost:8081/services/${editService}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(editFormData),
         }
-      } catch (error) {
-        console.error('Failed to update service:', error);
-        alert('Failed to update service');
+      );
+      const result = await response.json();
+      if (result.success) {
+        fetchServices();
+        setEditService(null);
+        setEditFormData({
+          name: '',
+          description: '',
+          status: 'Available',
+          price: '',
+        });
+        showSuccessToast('Service updated successfully');
+      } else {
+        setError('Failed to update service: ' + result.error);
       }
+    } catch (error) {
+      console.error('Failed to update service:', error);
+      setError('Failed to update service');
     }
   };
 
@@ -134,35 +184,69 @@ function Services() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (
-      formData.name &&
-      formData.description &&
-      formData.status &&
-      formData.price
-    ) {
-      try {
-        const response = await fetch('http://localhost:8081/services', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(formData),
+    setError('');
+
+    // Validation checks
+    if (!formData.name.trim()) {
+      setError('Service name is required');
+      return;
+    }
+
+    if (!validateServiceName(formData.name)) {
+      setError('Service name must be at least 3 characters');
+      return;
+    }
+
+    if (!formData.description.trim()) {
+      setError('Description is required');
+      return;
+    }
+
+    if (!validateDescription(formData.description)) {
+      setError('Description must be at least 10 characters');
+      return;
+    }
+
+    if (!formData.price) {
+      setError('Price is required');
+      return;
+    }
+
+    if (!validatePrice(formData.price)) {
+      setError('Please enter a valid price (e.g., 15.00)');
+      return;
+    }
+
+    if (!formData.status) {
+      setError('Status is required');
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:8081/services', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+      const result = await response.json();
+      if (result.success) {
+        fetchServices();
+        setFormData({
+          name: '',
+          description: '',
+          status: 'Available',
+          price: '',
         });
-        const result = await response.json();
-        if (result.success) {
-          fetchServices();
-          setFormData({
-            name: '',
-            description: '',
-            status: 'Available',
-            price: '',
-          });
-          setShowForm(false);
-        }
-      } catch (error) {
-        console.error('Failed to create service:', error);
-        alert('Failed to create service');
+        setShowForm(false);
+        showSuccessToast('Service created successfully');
+      } else {
+        setError('Failed to create service: ' + result.error);
       }
+    } catch (error) {
+      console.error('Failed to create service:', error);
+      setError('Failed to create service');
     }
   };
 
@@ -254,6 +338,8 @@ function Services() {
                 ✕
               </button>
             </div>
+
+            {error && <div className="error-message">{error}</div>}
 
             <form onSubmit={handleSubmit} className="service-form">
               <div className="form-group">
@@ -359,6 +445,7 @@ function Services() {
                 ×
               </button>
             </div>
+            {error && <div className="error-message">{error}</div>}
             <form
               className="edit-form"
               onSubmit={(e) => {

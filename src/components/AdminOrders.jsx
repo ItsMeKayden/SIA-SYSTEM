@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import '../styles/AdminOrders.css';
+import { showSuccessToast, showErrorToast } from '../utils/toastUtils';
 
 function AdminOrders() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -14,6 +15,7 @@ function AdminOrders() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editFormData, setEditFormData] = useState({
     userID: '',
+    userName: '',
     selectedServices: [],
     orderDate: '',
     status: 'Pending',
@@ -39,6 +41,14 @@ function AdminOrders() {
     }
     fetchOrders();
     fetchServices();
+
+    // Set up auto-refresh every 5 seconds
+    const interval = setInterval(() => {
+      fetchOrders();
+    }, 5000);
+
+    // Cleanup interval on component unmount
+    return () => clearInterval(interval);
   }, []);
 
   const fetchOrders = async () => {
@@ -107,6 +117,7 @@ function AdminOrders() {
     const formattedDate = dateObject.toISOString().split('T')[0];
     setEditFormData({
       userID: order.fld_userID,
+      userName: order.fld_username || '-',
       selectedServices: [order.fld_serviceID],
       orderDate: formattedDate,
       status: order.fld_orderStatus,
@@ -150,7 +161,7 @@ function AdminOrders() {
     console.log('editOrder:', editOrder);
 
     if (!editFormData.selectedServices.length) {
-      alert('Please select at least one service');
+      showErrorToast('Please select at least one service');
       return;
     }
 
@@ -187,13 +198,13 @@ function AdminOrders() {
         // Refresh orders from backend to ensure latest data
         await fetchOrders();
         setEditOrder(null);
-        alert('Order updated successfully!');
+        showSuccessToast('Order updated successfully!');
       } else {
-        alert('Failed to update order: ' + result.error);
+        showErrorToast('Failed to update order: ' + result.error);
       }
     } catch (error) {
       console.error('Failed to update order:', error);
-      alert('Failed to update order');
+      showErrorToast('Failed to update order');
     }
   };
 
@@ -217,6 +228,7 @@ function AdminOrders() {
           // Remove from local state
           setOrders(orders.filter((order) => order.fld_orderID !== orderId));
           console.log('Order deleted successfully');
+          showSuccessToast('Order deleted successfully');
         }
       })
       .catch((error) => console.error('Failed to delete order:', error));
@@ -282,13 +294,15 @@ function AdminOrders() {
   const fetchUserData = async (userID) => {
     try {
       console.log('Fetching user data for ID:', userID);
-      const response = await fetch(`http://localhost:8081/users/${userID}`);
+      const response = await fetch(
+        `http://localhost:8081/getuser/id/${userID}`
+      );
       const result = await response.json();
       console.log('User fetch result:', result);
-      if (result.success && result.data) {
+      if (result.success && result.user) {
         setNewOrderForm((prev) => ({
           ...prev,
-          userName: result.data.fld_username || 'User does not exist',
+          userName: result.user.fld_username || 'User not found',
         }));
       } else {
         setNewOrderForm((prev) => ({
@@ -338,14 +352,14 @@ function AdminOrders() {
           fetchOrders();
           handleCloseAddForm();
         } else {
-          alert('Failed to create order: ' + result.error);
+          showErrorToast('Failed to create order: ' + result.error);
         }
       } catch (error) {
         console.error('Failed to create order:', error);
-        alert('Failed to create order');
+        showErrorToast('Failed to create order');
       }
     } else {
-      alert('Please fill in all required fields including Items');
+      showErrorToast('Please fill in all required fields including Items');
     }
   };
 
@@ -619,10 +633,7 @@ function AdminOrders() {
                   type="text"
                   id="edit-userName"
                   name="userName"
-                  value={
-                    orders.find((o) => o.fld_orderID === editOrder)
-                      ?.fld_username || '-'
-                  }
+                  value={editFormData.userName}
                   disabled
                   readOnly
                   className="read-only-field"

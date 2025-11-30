@@ -24,8 +24,82 @@ function Register({ onSwitchToLogin }) {
 
   const [message, setMessage] = useState('');
 
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validatePhoneNumber = (phone) => {
+    if (!phone.trim()) return true; // Optional field
+    const digitsOnly = phone.replace(/\D/g, '');
+    return digitsOnly.length === 11; // Exactly 11 digits
+  };
+
+  const validatePassword = (password) => {
+    return password.length >= 6;
+  };
+
+  const validateFullName = (name) => {
+    return name.trim().length >= 2;
+  };
+
+  const validateAddress = (address) => {
+    if (!address.trim()) return true; // Optional
+    return address.trim().length >= 5;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Full Name validation
+    if (!formData.fullName.trim()) {
+      setError('Full name is required');
+      return;
+    }
+
+    if (!validateFullName(formData.fullName)) {
+      setError('Full name must be at least 2 characters');
+      return;
+    }
+
+    // Email validation
+    if (!formData.email.trim()) {
+      setError('Email is required');
+      return;
+    }
+
+    if (!validateEmail(formData.email)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
+    // Phone number validation
+    if (formData.phoneNumber && !validatePhoneNumber(formData.phoneNumber)) {
+      setError('Phone number must be exactly 11 digits');
+      return;
+    }
+
+    // Address validation
+    if (!validateAddress(formData.address)) {
+      setError('Address must be at least 5 characters');
+      return;
+    }
+
+    // Password validation
+    if (!formData.password) {
+      setError('Password is required');
+      return;
+    }
+
+    if (!validatePassword(formData.password)) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
+    if (!formData.confirmPassword) {
+      setError('Please confirm your password');
+      return;
+    }
 
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
@@ -55,9 +129,9 @@ function Register({ onSwitchToLogin }) {
       if (result.success) {
         // If server returns the new user's id, capture it and show to user / use later
         if (result.userId) {
-          setMessage(`Success! User added. Your user id is ${result.userId}`);
+          setMessage(`Success! User registered successfully.`);
         } else {
-          setMessage('Success! User added to database.');
+          setMessage('Success! User registered to database.');
         }
         setFormData({
           fullName: '',
@@ -68,7 +142,7 @@ function Register({ onSwitchToLogin }) {
           confirmPassword: '',
         });
       } else {
-        setMessage('Error: ' + result.error);
+        setError(result.error || 'An error occurred during registration');
       }
     } catch (error) {
       setMessage('Cannot connect to server. Make sure backend is running.');
@@ -192,7 +266,7 @@ function Register({ onSwitchToLogin }) {
             </a>
           </p>
         </div>
-        {message && <div className="error-message">{message}</div>}
+        {message && <div className="success-message">{message}</div>}
       </div>
     </div>
   );
