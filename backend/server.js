@@ -90,21 +90,25 @@ app.post('/signupuser', (req, res) => {
 
 // FOR ADMIN LOGIN
 app.post('/loginadmin', (req, res) => {
-  const { username, password } = req.body;
+  const { email, password } = req.body;
 
-  console.log('Admin login attempt:', { email: username, password });
+  console.log('Admin login attempt:', { email, password });
 
   const sql =
     'SELECT * FROM tbl_admin WHERE fld_email = ? AND fld_password = ?';
 
-  db.query(sql, [username, password], (err, result) => {
+  db.query(sql, [email, password], (err, result) => {
     if (err) {
       console.log('Database error:', err.message);
       res.json({ success: false, error: 'Login failed: ' + err.message });
     } else {
       console.log('Query result:', result);
       if (result.length > 0) {
-        res.json({ success: true, message: 'Admin login successful' });
+        res.json({
+          success: true,
+          message: 'Admin login successful',
+          adminID: result[0].fld_adminID,
+        });
       } else {
         res.json({ success: false, error: 'Invalid email or password' });
       }
@@ -114,11 +118,11 @@ app.post('/loginadmin', (req, res) => {
 
 // FOR USER LOGIN
 app.post('/loginuser', (req, res) => {
-  const { username, password } = req.body;
+  const { email, password } = req.body;
 
   const sql = 'SELECT * FROM tbl_user WHERE fld_email = ? AND fld_password = ?';
 
-  db.query(sql, [username, password], (err, result) => {
+  db.query(sql, [email, password], (err, result) => {
     if (err) {
       res.json({ success: false, error: 'Login failed: ' + err.message });
     } else if (result.length > 0) {
@@ -207,15 +211,18 @@ app.put('/updateuser', (req, res) => {
 
 // FOR GETTING ALL SERVICES
 app.get('/services', (req, res) => {
+  console.log('GET /services endpoint called');
   const sql = 'SELECT * FROM tbl_services';
 
   db.query(sql, (err, result) => {
     if (err) {
+      console.error('Services fetch error:', err);
       res.json({
         success: false,
         error: 'Failed to fetch services: ' + err.message,
       });
     } else {
+      console.log('Services returned:', result.length, 'records');
       res.json({ success: true, data: result });
     }
   });
@@ -306,6 +313,185 @@ app.delete('/services/:id', (req, res) => {
     }
 
     res.json({ success: true, message: 'Service deleted successfully' });
+  });
+});
+
+// FOR GETTING ALL ORDERS
+app.get('/orders', (req, res) => {
+  const sql = `
+    SELECT 
+      o.fld_orderID,
+      o.fld_userID,
+      o.fld_serviceID,
+      o.fld_adminID,
+      o.fld_orderDate,
+      o.fld_orderStatus,
+      o.fld_amount,
+      o.fld_items,
+      u.fld_username,
+      s.fld_serviceName
+    FROM tbl_orders o
+    LEFT JOIN tbl_user u ON o.fld_userID = u.fld_userID
+    LEFT JOIN tbl_services s ON o.fld_serviceID = s.fld_serviceID
+    ORDER BY o.fld_orderDate DESC
+  `;
+
+  db.query(sql, (err, result) => {
+    if (err) {
+      res.json({
+        success: false,
+        error: 'Failed to fetch orders: ' + err.message,
+      });
+    } else {
+      res.json({ success: true, data: result });
+    }
+  });
+});
+
+// FOR CREATING A NEW ORDER
+app.post('/orders', (req, res) => {
+  const { userID, serviceID, orderDate, status, amount, adminID, items } =
+    req.body;
+
+  console.log('Creating order with:', {
+    userID,
+    serviceID,
+    orderDate,
+    status,
+    amount,
+    adminID,
+    items,
+  });
+
+  const sql =
+    'INSERT INTO tbl_orders (fld_userID, fld_serviceID, fld_orderDate, fld_orderStatus, fld_amount, fld_adminID, fld_items) VALUES (?, ?, ?, ?, ?, ?, ?)';
+
+  db.query(
+    sql,
+    [userID, serviceID, orderDate, status, amount, adminID, items],
+    (err, result) => {
+      if (err) {
+        console.error('Database error:', err);
+        res.json({
+          success: false,
+          error: 'Failed to create order: ' + err.message,
+        });
+      } else {
+        console.log('Order created with ID:', result.insertId);
+        res.json({
+          success: true,
+          message: 'Order created successfully',
+          id: result.insertId,
+        });
+      }
+    }
+  );
+});
+
+// FOR UPDATING ORDER STATUS
+app.put('/orders/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const { status, serviceID, orderDate, amount, items } = req.body;
+
+  process.stdout.write('\n=== PUT /orders/:id called ===\n');
+  process.stdout.write(`Order ID: ${id}\n`);
+  process.stdout.write(`Request body: ${JSON.stringify(req.body)}\n`);
+
+  // Check if this is a full update (has serviceID, orderDate, amount, items) or status-only update
+  const isFullUpdate = serviceID && orderDate && amount !== undefined && items;
+  process.stdout.write(`Is full update: ${isFullUpdate}\n`);
+
+  if (isFullUpdate) {
+    // Full order update
+    const sql =
+      'UPDATE tbl_orders SET fld_serviceID = ?, fld_orderDate = ?, fld_orderStatus = ?, fld_amount = ?, fld_items = ? WHERE fld_orderID = ?';
+
+    const params = [
+      parseInt(serviceID),
+      orderDate,
+      status,
+      parseFloat(amount),
+      items,
+      id,
+    ];
+
+    process.stdout.write('Executing FULL UPDATE\n');
+    process.stdout.write(`SQL: ${sql}\n`);
+    process.stdout.write(`Params: ${JSON.stringify(params)}\n`);
+
+    db.query(sql, params, (err, result) => {
+      if (err) {
+        process.stdout.write(`UPDATE ERROR: ${err.message}\n`);
+        return res.json({
+          success: false,
+          error: 'Failed to update order: ' + err.message,
+        });
+      }
+
+      process.stdout.write(
+        `UPDATE SUCCESSFUL. Rows affected: ${result.affectedRows}\n`
+      );
+
+      if (result.affectedRows === 0) {
+        process.stdout.write(`Order ID not found: ${id}\n`);
+        return res.json({ success: false, error: 'Order ID not found' });
+      }
+
+      res.json({ success: true, message: 'Order updated successfully' });
+    });
+  } else {
+    // Status-only update
+    const sql =
+      'UPDATE tbl_orders SET fld_orderStatus = ? WHERE fld_orderID = ?';
+    process.stdout.write('Executing STATUS-ONLY UPDATE\n');
+    process.stdout.write(`SQL: ${sql}\n`);
+    process.stdout.write(`Params: ${JSON.stringify([status, id])}\n`);
+
+    db.query(sql, [status, id], (err, result) => {
+      if (err) {
+        process.stdout.write(`UPDATE ERROR: ${err.message}\n`);
+        return res.json({
+          success: false,
+          error: 'Failed to update order: ' + err.message,
+        });
+      }
+
+      process.stdout.write(
+        `UPDATE SUCCESSFUL. Rows affected: ${result.affectedRows}\n`
+      );
+
+      if (result.affectedRows === 0) {
+        process.stdout.write(`Order ID not found: ${id}\n`);
+        return res.json({ success: false, error: 'Order ID not found' });
+      }
+
+      res.json({ success: true, message: 'Order updated successfully' });
+    });
+  }
+});
+
+// FOR DELETING AN ORDER
+app.delete('/orders/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+
+  console.log('Deleting order ID:', id);
+
+  const sql = 'DELETE FROM tbl_orders WHERE fld_orderID = ?';
+
+  db.query(sql, [id], (err, result) => {
+    if (err) {
+      console.error('Delete error:', err);
+      return res.json({
+        success: false,
+        error: 'Failed to delete order: ' + err.message,
+      });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.json({ success: false, error: 'Order ID not found' });
+    }
+
+    res.json({ success: true, message: 'Order deleted successfully' });
   });
 });
 

@@ -23,7 +23,7 @@ function Login({ onSwitchToRegister, onLoginSuccess }) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          username: email,
+          email: email,
           password: password,
         }),
       });
@@ -67,22 +67,26 @@ function Login({ onSwitchToRegister, onLoginSuccess }) {
         </div>
 
         {message && (
-          <div className={`message ${message.includes('Invalid') || message.includes('Cannot connect') ? 'error' : 'success'}`}>
+          <div
+            className={`message ${
+              message.includes('Invalid') || message.includes('Cannot connect')
+                ? 'error'
+                : 'success'
+            }`}
+          >
             {message}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
-            <label htmlFor="username">
-              {isAdmin ? 'Admin Email' : 'Email'}
-            </label>
+            <label htmlFor="email">{isAdmin ? 'Admin Email' : 'Email'}</label>
             <input
-              type="text"
-              id="username"
-              placeholder={isAdmin ? "Enter admin email" : "Enter your email"}
+              type="email"
+              id="email"
+              placeholder={isAdmin ? 'Enter admin email' : 'Enter your email'}
               value={email}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={(e) => setEmail(e.target.value)}
               required
               disabled={loading}
             />
