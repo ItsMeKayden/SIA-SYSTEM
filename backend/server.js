@@ -9,7 +9,7 @@ app.use(express.json());
 const db = mysql.createConnection({
   host: 'localhost',
   user: 'root',
-  password: '1234',
+  password: '061504',
   database: 'washtrack_db',
 });
 
@@ -649,6 +649,108 @@ app.delete('/orders/:id', (req, res) => {
     }
 
     res.json({ success: true, message: 'Order deleted successfully' });
+  });
+});
+
+// FOR GETTING ALL STAFF
+app.get('/staff', (req, res) => {
+  console.log('GET /staff endpoint called');
+  const sql = 'SELECT fld_staffID, fld_adminID, fld_name, fld_email, fld_role FROM tbl_management';
+
+  db.query(sql, (err, result) => {
+    if (err) {
+      console.error('Staff fetch error:', err);
+      res.json({
+        success: false,
+        error: 'Failed to fetch staff: ' + err.message,
+      });
+    } else {
+      console.log('Staff returned:', result.length, 'records');
+      res.json({ success: true, data: result });
+    }
+  });
+});
+
+// FOR CREATING A NEW STAFF
+app.post('/staff', (req, res) => {
+  const { adminID, name, email, role } = req.body;
+
+  console.log('Creating staff with:', { adminID, name, email, role });
+
+  const sql =
+    'INSERT INTO tbl_management (fld_adminID, fld_name, fld_email, fld_role) VALUES (?, ?, ?, ?)';
+
+  db.query(sql, [adminID, name, email, role], (err, result) => {
+    if (err) {
+      console.error('Database error:', err);
+      res.json({
+        success: false,
+        error: 'Failed to create staff: ' + err.message,
+      });
+    } else {
+      console.log('Staff created with ID:', result.insertId);
+      res.json({
+        success: true,
+        message: 'Staff added successfully',
+        id: result.insertId,
+      });
+    }
+  });
+});
+
+// FOR UPDATING STAFF
+app.put('/staff/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const { name, email, role } = req.body;
+
+  console.log('Updating staff ID:', id, 'with:', { name, email, role });
+
+  const sql =
+    'UPDATE tbl_management SET fld_name = ?, fld_email = ?, fld_role = ? WHERE fld_staffID = ?';
+
+  db.query(sql, [name, email, role, id], (err, result) => {
+    if (err) {
+      console.error('Update error:', err);
+      return res.json({
+        success: false,
+        error: 'Failed to update staff: ' + err.message,
+      });
+    }
+
+    console.log('Update result - Rows affected:', result.affectedRows);
+
+    if (result.affectedRows === 0) {
+      return res.json({ success: false, error: 'Staff ID not found' });
+    }
+
+    res.json({ success: true, message: 'Staff updated successfully' });
+  });
+});
+
+// FOR DELETING STAFF
+app.delete('/staff/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+
+  console.log('Deleting staff ID:', id);
+
+  const sql = 'DELETE FROM tbl_management WHERE fld_staffID = ?';
+
+  db.query(sql, [id], (err, result) => {
+    if (err) {
+      console.error('Delete error:', err);
+      return res.json({
+        success: false,
+        error: 'Failed to delete staff: ' + err.message,
+      });
+    }
+
+    console.log('Delete result - Rows affected:', result.affectedRows);
+
+    if (result.affectedRows === 0) {
+      return res.json({ success: false, error: 'Staff ID not found' });
+    }
+
+    res.json({ success: true, message: 'Staff deleted successfully' });
   });
 });
 

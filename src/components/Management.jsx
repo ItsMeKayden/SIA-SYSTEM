@@ -1,83 +1,88 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import '../styles/Management.css';
+import { showSuccessToast, showErrorToast } from '../utils/toastUtils';
 
 function Management() {
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [viewAccount, setViewAccount] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [adminID, setAdminID] = useState(null);
+  const [services, setServices] = useState([]);
   const [newAdminForm, setNewAdminForm] = useState({
     name: '',
     email: '',
-    username: '',
-    contact: '',
-    role: 'Staff',
+    role: '',
   });
-  const [accounts, setAccounts] = useState([
-    {
-      id: 1,
-      name: 'Gyrl Hanahan',
-      email: 'gyrlhanahan@gmail.com',
-      username: 'gyrlh_admin',
-      contact: '+1-555-0101',
-      role: 'Staff',
-      status: 'active',
-      joinDate: '2025-11-01',
-    },
-    {
-      id: 2,
-      name: 'Admin User',
-      email: 'admin@washtrack.com',
-      username: 'admin_user',
-      contact: '+1-555-0102',
-      role: 'Admin',
-      status: 'active',
-      joinDate: '2025-10-15',
-    },
-    {
-      id: 3,
-      name: 'John Customer',
-      email: 'john@example.com',
-      username: 'john_cust',
-      contact: '+1-555-0103',
-      role: 'User',
-      status: 'active',
-      joinDate: '2025-11-05',
-    },
-    {
-      id: 4,
-      name: 'Jane User',
-      email: 'jane@example.com',
-      username: 'jane_user',
-      contact: '+1-555-0104',
-      role: 'User',
-      status: 'inactive',
-      joinDate: '2025-10-20',
-    },
-    {
-      id: 5,
-      name: 'Manager Staff',
-      email: 'manager@washtrack.com',
-      username: 'manager_staff',
-      contact: '+1-555-0105',
-      role: 'Staff',
-      status: 'active',
-      joinDate: '2025-11-03',
-    },
-  ]);
+  const [accounts, setAccounts] = useState([]);
+
+  // Get adminID from localStorage and fetch staff and services
+  useEffect(() => {
+    const storedAdminID = localStorage.getItem('adminID');
+    if (storedAdminID) {
+      setAdminID(storedAdminID);
+    }
+    fetchStaff();
+    fetchServices();
+  }, []);
+
+  const fetchStaff = async () => {
+    try {
+      const response = await fetch('http://localhost:8081/staff');
+      const result = await response.json();
+      if (result.success) {
+        setAccounts(result.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch staff:', error);
+    }
+  };
+
+  const fetchServices = async () => {
+    try {
+      const response = await fetch('http://localhost:8081/services');
+      const result = await response.json();
+      if (result.success) {
+        setServices(result.data);
+        // Set first service as default if available
+        if (result.data.length > 0) {
+          setNewAdminForm((prev) => ({
+            ...prev,
+            role: result.data[0].fld_serviceName,
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch services:', error);
+    }
+  };
 
   const filteredAccounts = accounts.filter(
     (account) =>
-      account.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      account.email.toLowerCase().includes(searchTerm.toLowerCase())
+      account.fld_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      account.fld_email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleDeleteAccount = (accountId) => {
     setDeleteConfirm(accountId);
   };
 
-  const confirmDelete = (accountId) => {
-    setAccounts(accounts.filter((account) => account.id !== accountId));
+  const confirmDelete = async (accountId) => {
+    try {
+      const response = await fetch(`http://localhost:8081/staff/${accountId}`, {
+        method: 'DELETE',
+      });
+      const result = await response.json();
+      if (result.success) {
+        setAccounts(accounts.filter((account) => account.fld_staffID !== accountId));
+        showSuccessToast('Staff deleted successfully');
+      } else {
+        showErrorToast('Failed to delete staff: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Failed to delete staff:', error);
+      showErrorToast('Failed to delete staff');
+    }
     setDeleteConfirm(null);
   };
 
@@ -93,25 +98,52 @@ function Management() {
     setViewAccount(null);
   };
 
-  const handleToggleStatus = (accountId) => {
+  const handleChangeRole = (accountId, newRole) => {
+    // Prevent assigning Admin role
+    if (newRole === 'Admin') {
+      showErrorToast('Cannot assign "Admin" role to staff members.');
+      fetchStaff(); // Refresh to reset the dropdown
+      return;
+    }
+
+    // Update locally first for immediate UI feedback
     setAccounts(
       accounts.map((account) =>
-        account.id === accountId
-          ? {
-              ...account,
-              status: account.status === 'active' ? 'inactive' : 'active',
-            }
+        account.fld_staffID === accountId 
+          ? { ...account, fld_role: newRole } 
           : account
       )
     );
-  };
 
-  const handleChangeRole = (accountId, newRole) => {
-    setAccounts(
-      accounts.map((account) =>
-        account.id === accountId ? { ...account, role: newRole } : account
-      )
-    );
+    // Update in database
+    const account = accounts.find((a) => a.fld_staffID === accountId);
+    if (account) {
+      fetch(`http://localhost:8081/staff/${accountId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: account.fld_name,
+          email: account.fld_email,
+          role: newRole,
+        }),
+      })
+        .then((response) => response.json())
+        .then((result) => {
+          if (result.success) {
+            showSuccessToast('Role updated successfully');
+          } else {
+            showErrorToast('Failed to update role: ' + result.error);
+            fetchStaff(); // Refresh on error
+          }
+        })
+        .catch((error) => {
+          console.error('Failed to update role:', error);
+          showErrorToast('Failed to update role');
+          fetchStaff(); // Refresh on error
+        });
+    }
   };
 
   const handleAddAdminClick = () => {
@@ -123,9 +155,7 @@ function Management() {
     setNewAdminForm({
       name: '',
       email: '',
-      username: '',
-      contact: '',
-      role: 'Staff',
+      role: services.length > 0 ? services[0].fld_serviceName : '',
     });
   };
 
@@ -137,22 +167,54 @@ function Management() {
     }));
   };
 
-  const handleSubmitAddAdmin = (e) => {
+  const handleSubmitAddAdmin = async (e) => {
     e.preventDefault();
     if (
       newAdminForm.name &&
       newAdminForm.email &&
-      newAdminForm.username &&
-      newAdminForm.contact
+      newAdminForm.role
     ) {
-      const newAdmin = {
-        id: Math.max(...accounts.map((a) => a.id), 0) + 1,
-        ...newAdminForm,
-        status: 'active',
-        joinDate: new Date().toISOString().split('T')[0],
-      };
-      setAccounts([...accounts, newAdmin]);
-      handleCloseAddForm();
+      if (!adminID) {
+        showErrorToast('Admin ID not found. Please login as admin.');
+        return;
+      }
+
+      if (newAdminForm.role === 'Admin') {
+        showErrorToast('Cannot assign "Admin" role to staff members.');
+        return;
+      }
+
+      try {
+        const staffData = {
+          adminID: parseInt(adminID),
+          name: newAdminForm.name,
+          email: newAdminForm.email,
+          role: newAdminForm.role,
+        };
+
+        const response = await fetch('http://localhost:8081/staff', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(staffData),
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          showSuccessToast('Staff added successfully!');
+          fetchStaff(); // Refresh the staff list
+          handleCloseAddForm();
+        } else {
+          showErrorToast('Failed to add staff: ' + result.error);
+        }
+      } catch (error) {
+        console.error('Failed to add staff:', error);
+        showErrorToast('Failed to add staff');
+      }
+    } else {
+      showErrorToast('Please fill in all required fields');
     }
   };
 
@@ -164,7 +226,7 @@ function Management() {
           <p>Manage system administrators and staff</p>
         </div>
         <button className="add-admin-btn" onClick={handleAddAdminClick}>
-          ➕ Add Admin
+          ➕ Add Staff
         </button>
       </div>
 
@@ -185,35 +247,34 @@ function Management() {
               <th>Name</th>
               <th>Email</th>
               <th>Role</th>
-              <th>Status</th>
-              <th>Join Date</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredAccounts.map((account) => (
-              <tr key={account.id}>
-                <td className="name-cell">{account.name}</td>
-                <td>{account.email}</td>
+              <tr key={account.fld_staffID}>
+                <td className="name-cell">{account.fld_name}</td>
+                <td>{account.fld_email}</td>
                 <td>
                   <select
                     className="role-select"
-                    value={account.role}
+                    value={account.fld_role}
                     onChange={(e) =>
-                      handleChangeRole(account.id, e.target.value)
+                      handleChangeRole(account.fld_staffID, e.target.value)
                     }
                   >
-                    <option value="Admin">Admin</option>
-                    <option value="Staff">Staff</option>
-                    <option value="User">User</option>
+                    <option value="">Select a Role</option>
+                    {services && services.length > 0 ? (
+                      services.map((service) => (
+                        <option key={service.fld_serviceID} value={service.fld_serviceName}>
+                          {service.fld_serviceName}
+                        </option>
+                      ))
+                    ) : (
+                      <option disabled>No services available</option>
+                    )}
                   </select>
                 </td>
-                <td>
-                  <span className={`status-badge ${account.status}`}>
-                    {account.status}
-                  </span>
-                </td>
-                <td>{account.joinDate}</td>
                 <td className="actions-cell">
                   <button
                     className="action-btn view-btn"
@@ -223,17 +284,8 @@ function Management() {
                     👁️
                   </button>
                   <button
-                    className={`action-btn toggle-btn ${account.status}`}
-                    onClick={() => handleToggleStatus(account.id)}
-                    title={
-                      account.status === 'active' ? 'Deactivate' : 'Activate'
-                    }
-                  >
-                    {account.status === 'active' ? '✓' : '○'}
-                  </button>
-                  <button
                     className="action-btn delete-btn"
-                    onClick={() => handleDeleteAccount(account.id)}
+                    onClick={() => handleDeleteAccount(account.fld_staffID)}
                     title="Delete"
                   >
                     🗑️
@@ -280,44 +332,25 @@ function Management() {
 
             <div className="account-details">
               <div className="detail-group">
-                <label>Username</label>
-                <p>{viewAccount.username}</p>
-              </div>
-
-              <div className="detail-group">
                 <label>Full Name</label>
-                <p>{viewAccount.name}</p>
+                <p>{viewAccount.fld_name}</p>
               </div>
 
               <div className="detail-group">
                 <label>Email</label>
-                <p>{viewAccount.email}</p>
-              </div>
-
-              <div className="detail-group">
-                <label>Contact Number</label>
-                <p>{viewAccount.contact}</p>
+                <p>{viewAccount.fld_email}</p>
               </div>
 
               <div className="detail-group">
                 <label>Role</label>
                 <p>
-                  <span className="role-badge">{viewAccount.role}</span>
+                  <span className="role-badge">{viewAccount.fld_role}</span>
                 </p>
               </div>
 
               <div className="detail-group">
-                <label>Status</label>
-                <p>
-                  <span className={`status-badge-detail ${viewAccount.status}`}>
-                    {viewAccount.status}
-                  </span>
-                </p>
-              </div>
-
-              <div className="detail-group">
-                <label>Join Date</label>
-                <p>{viewAccount.joinDate}</p>
+                <label>Admin ID</label>
+                <p>{viewAccount.fld_adminID}</p>
               </div>
 
               <div className="detail-actions">
@@ -368,41 +401,24 @@ function Management() {
               </div>
 
               <div className="form-group">
-                <label htmlFor="add-username">Username</label>
-                <input
-                  type="text"
-                  id="add-username"
-                  name="username"
-                  value={newAdminForm.username}
-                  onChange={handleAddFormChange}
-                  placeholder="Enter username"
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="add-contact">Contact Number</label>
-                <input
-                  type="text"
-                  id="add-contact"
-                  name="contact"
-                  value={newAdminForm.contact}
-                  onChange={handleAddFormChange}
-                  placeholder="e.g., +1-555-0100"
-                  required
-                />
-              </div>
-
-              <div className="form-group">
                 <label htmlFor="add-role">Role</label>
                 <select
                   id="add-role"
                   name="role"
                   value={newAdminForm.role}
                   onChange={handleAddFormChange}
+                  required
                 >
-                  <option value="Admin">Admin</option>
-                  <option value="Staff">Staff</option>
+                  <option value="">Select a Role</option>
+                  {services && services.length > 0 ? (
+                    services.map((service) => (
+                      <option key={service.fld_serviceID} value={service.fld_serviceName}>
+                        {service.fld_serviceName}
+                      </option>
+                    ))
+                  ) : (
+                    <option disabled>No services available</option>
+                  )}
                 </select>
               </div>
 
@@ -415,7 +431,7 @@ function Management() {
                   Cancel
                 </button>
                 <button type="submit" className="btn-submit">
-                  Add Admin
+                  Add Staff
                 </button>
               </div>
             </form>
