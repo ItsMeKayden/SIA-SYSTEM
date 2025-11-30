@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import '../styles/Register.css';
 import { showSuccessToast, showErrorToast } from '../utils/toastUtils';
 
 function Register({ onSwitchToLogin }) {
+  const [isAdminMode, setIsAdminMode] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -13,6 +15,15 @@ function Register({ onSwitchToLogin }) {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
+
+  // Check if user is logged in as admin
+  useEffect(() => {
+    const userType = localStorage.getItem('userType');
+    if (userType === 'admin') {
+      setIsAdmin(true);
+    }
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -79,7 +90,7 @@ function Register({ onSwitchToLogin }) {
     }
 
     // Address validation
-    if (!validateAddress(formData.address)) {
+    if (formData.address && !validateAddress(formData.address)) {
       setError('Address must be at least 5 characters');
       return;
     }
@@ -119,6 +130,7 @@ function Register({ onSwitchToLogin }) {
           email: formData.email,
           contact: formData.phoneNumber,
           address: formData.address,
+          isAdmin: isAdminMode,
         }),
       });
 
@@ -149,9 +161,39 @@ function Register({ onSwitchToLogin }) {
       <div className="register-card">
         <div className="logo-section">
           <div className="logo-icon">👕</div>
-          <h1>Register</h1>
-          <p className="tagline">Create your WashTrack account</p>
+          <h1>{isAdminMode ? 'Admin Registration' : 'User Registration'}</h1>
+          <p className="tagline">
+            {isAdminMode ? 'Create your Admin account' : 'Create your WashTrack account'}
+          </p>
         </div>
+
+        {/* Admin Mode Toggle */}
+        {isAdmin && (
+          <div className="admin-mode-toggle">
+            <button
+              type="button"
+              className={`mode-btn ${!isAdminMode ? 'active' : ''}`}
+              onClick={() => {
+                setIsAdminMode(false);
+                setError('');
+                setMessage('');
+              }}
+            >
+              User
+            </button>
+            <button
+              type="button"
+              className={`mode-btn ${isAdminMode ? 'active' : ''}`}
+              onClick={() => {
+                setIsAdminMode(true);
+                setError('');
+                setMessage('');
+              }}
+            >
+              Admin
+            </button>
+          </div>
+        )}
 
         {error && <div className="error-message">{error}</div>}
 
@@ -241,24 +283,43 @@ function Register({ onSwitchToLogin }) {
           </div>
 
           <button type="submit" className="register-btn" disabled={loading}>
-            {loading ? 'Registering...' : 'Register'}
+            {loading ? 'Registering...' : 'Create Account'}
           </button>
         </form>
 
-        <div className="login-section">
-          <p>
-            Already have an account?{' '}
-            <a
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                onSwitchToLogin();
-              }}
-            >
-              Login
-            </a>
-          </p>
-        </div>
+        {!isAdminMode && (
+          <div className="login-section">
+            <p>
+              Already have an account?{' '}
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  onSwitchToLogin();
+                }}
+              >
+                Login
+              </a>
+            </p>
+          </div>
+        )}
+        {isAdminMode && (
+          <div className="login-section">
+            <p>
+              Already have an account?{' '}
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  onSwitchToLogin();
+                }}
+              >
+                Login
+              </a>
+            </p>
+          </div>
+        )}
+        {message && <div className="success-message">{message}</div>}
       </div>
     </div>
   );

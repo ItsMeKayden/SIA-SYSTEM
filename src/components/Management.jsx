@@ -264,15 +264,9 @@ function Management() {
                     }
                   >
                     <option value="">Select a Role</option>
-                    {services && services.length > 0 ? (
-                      services.map((service) => (
-                        <option key={service.fld_serviceID} value={service.fld_serviceName}>
-                          {service.fld_serviceName}
-                        </option>
-                      ))
-                    ) : (
-                      <option disabled>No services available</option>
-                    )}
+                    <option value="Wash">Wash</option>
+                    <option value="Fold">Fold</option>
+                    <option value="Iron">Iron</option>
                   </select>
                 </td>
                 <td className="actions-cell">
@@ -410,15 +404,9 @@ function Management() {
                   required
                 >
                   <option value="">Select a Role</option>
-                  {services && services.length > 0 ? (
-                    services.map((service) => (
-                      <option key={service.fld_serviceID} value={service.fld_serviceName}>
-                        {service.fld_serviceName}
-                      </option>
-                    ))
-                  ) : (
-                    <option disabled>No services available</option>
-                  )}
+                  <option value="Wash">Wash</option>
+                  <option value="Fold">Fold</option>
+                  <option value="Iron">Iron</option>
                 </select>
               </div>
 
