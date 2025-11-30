@@ -2,7 +2,7 @@ import { useState } from 'react';
 import '../styles/Login.css';
 
 function Login({ onSwitchToRegister, onLoginSuccess }) {
-  const [email, setEmail] = useState('');
+  const [email, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -43,6 +43,10 @@ function Login({ onSwitchToRegister, onLoginSuccess }) {
           localStorage.setItem('userID', result.userID);
           localStorage.setItem('username', result.username);
         }
+        
+        // Store user type (admin or regular user)
+        localStorage.setItem('userType', isAdmin ? 'admin' : 'user');
+        
         if (onLoginSuccess) {
           onLoginSuccess(isAdmin);
         }
