@@ -2,7 +2,7 @@ import { useState } from 'react';
 import '../styles/Login.css';
 
 function Login({ onSwitchToRegister, onLoginSuccess }) {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -23,7 +23,7 @@ function Login({ onSwitchToRegister, onLoginSuccess }) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          username: email,
+          email: email,
           password: password,
         }),
       });
@@ -32,6 +32,14 @@ function Login({ onSwitchToRegister, onLoginSuccess }) {
 
       if (result.success) {
         setLoading(false);
+        console.log('Login successful, result:', result);
+        // Store admin ID if logging in as admin
+        if (isAdmin && result.adminID) {
+          console.log('Storing adminID:', result.adminID);
+          localStorage.setItem('adminID', result.adminID);
+        } else if (isAdmin) {
+          console.log('Admin login but no adminID in response');
+        }
         if (onLoginSuccess) {
           onLoginSuccess(isAdmin);
         }
@@ -55,22 +63,26 @@ function Login({ onSwitchToRegister, onLoginSuccess }) {
         </div>
 
         {message && (
-          <div className={`message ${message.includes('Invalid') || message.includes('Cannot connect') ? 'error' : 'success'}`}>
+          <div
+            className={`message ${
+              message.includes('Invalid') || message.includes('Cannot connect')
+                ? 'error'
+                : 'success'
+            }`}
+          >
             {message}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
-            <label htmlFor="username">
-              {isAdmin ? 'Admin Username' : 'Username'}
-            </label>
+            <label htmlFor="email">{isAdmin ? 'Admin Email' : 'Email'}</label>
             <input
-              type="text"
-              id="username"
-              placeholder={isAdmin ? "Enter admin username" : "Enter your username"}
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              type="email"
+              id="email"
+              placeholder={isAdmin ? 'Enter admin email' : 'Enter your email'}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               required
               disabled={loading}
             />
