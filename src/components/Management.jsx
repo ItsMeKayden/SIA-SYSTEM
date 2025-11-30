@@ -74,7 +74,7 @@ function Management() {
       });
       const result = await response.json();
       if (result.success) {
-        setAccounts(accounts.filter((account) => account.fld_staffID !== accountId));
+        setAccounts(accounts.filter((account) => account.fld_id !== accountId));
         showSuccessToast('Staff deleted successfully');
       } else {
         showErrorToast('Failed to delete staff: ' + result.error);
@@ -109,14 +109,14 @@ function Management() {
     // Update locally first for immediate UI feedback
     setAccounts(
       accounts.map((account) =>
-        account.fld_staffID === accountId 
+        account.fld_id === accountId 
           ? { ...account, fld_role: newRole } 
           : account
       )
     );
 
     // Update in database
-    const account = accounts.find((a) => a.fld_staffID === accountId);
+    const account = accounts.find((a) => a.fld_id === accountId);
     if (account) {
       fetch(`http://localhost:8081/staff/${accountId}`, {
         method: 'PUT',
@@ -252,7 +252,7 @@ function Management() {
           </thead>
           <tbody>
             {filteredAccounts.map((account) => (
-              <tr key={account.fld_staffID}>
+              <tr key={account.fld_id}>
                 <td className="name-cell">{account.fld_name}</td>
                 <td>{account.fld_email}</td>
                 <td>
@@ -260,7 +260,7 @@ function Management() {
                     className="role-select"
                     value={account.fld_role}
                     onChange={(e) =>
-                      handleChangeRole(account.fld_staffID, e.target.value)
+                      handleChangeRole(account.fld_id, e.target.value)
                     }
                   >
                     <option value="">Select a Role</option>
@@ -285,7 +285,7 @@ function Management() {
                   </button>
                   <button
                     className="action-btn delete-btn"
-                    onClick={() => handleDeleteAccount(account.fld_staffID)}
+                    onClick={() => handleDeleteAccount(account.fld_id)}
                     title="Delete"
                   >
                     🗑️
