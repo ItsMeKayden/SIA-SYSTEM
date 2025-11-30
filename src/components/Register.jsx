@@ -52,7 +52,12 @@ function Register({ onSwitchToLogin }) {
       const result = await response.json();
 
       if (result.success) {
-        setMessage('Success! User added to database.');
+        // If server returns the new user's id, capture it and show to user / use later
+        if (result.userId) {
+          setMessage(`Success! User added. Your user id is ${result.userId}`);
+        } else {
+          setMessage('Success! User added to database.');
+        }
         setFormData({
           fullName: '',
           email: '',

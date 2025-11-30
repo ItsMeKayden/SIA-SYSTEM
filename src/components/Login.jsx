@@ -2,7 +2,7 @@ import { useState } from 'react';
 import '../styles/Login.css';
 
 function Login({ onSwitchToRegister, onLoginSuccess }) {
-  const [username, setUsername] = useState('');
+  const [email, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -63,13 +63,13 @@ function Login({ onSwitchToRegister, onLoginSuccess }) {
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
             <label htmlFor="username">
-              {isAdmin ? 'Admin Username' : 'Username'}
+              {isAdmin ? 'Admin Email' : 'Email'}
             </label>
             <input
               type="text"
               id="username"
-              placeholder={isAdmin ? "Enter admin username" : "Enter your username"}
-              value={username}
+              placeholder={isAdmin ? "Enter admin email" : "Enter your email"}
+              value={email}
               onChange={(e) => setUsername(e.target.value)}
               required
               disabled={loading}
