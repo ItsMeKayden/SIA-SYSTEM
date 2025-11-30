@@ -47,8 +47,7 @@ function App() {
       ) : currentPage === 'register' ? (
         <Register onSwitchToLogin={handleSwitchToLogin} />
       ) : currentPage === 'admin' ? (
-<<<<<<< HEAD
-        <AdminDashboard 
+        <AdminDashboard
           userData={userData}
           onLogout={handleLogout}
           onRefreshUserData={refreshUserData}
@@ -59,11 +58,6 @@ function App() {
           onLogout={handleLogout}
           onRefreshUserData={refreshUserData}
         />
-=======
-        <AdminDashboard userData={userData} onLogout={handleLogout} />
-      ) : (
-        <Dashboard userData={userData} onLogout={handleLogout} />
->>>>>>> ed41528ff563c688c4c47f299dad5cd31e532bad
       )}
     </>
   );

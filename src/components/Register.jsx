@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import '../styles/Register.css';
+import { showSuccessToast, showErrorToast } from '../utils/toastUtils';
 
 function Register({ onSwitchToLogin }) {
   const [formData, setFormData] = useState({
@@ -21,8 +22,6 @@ function Register({ onSwitchToLogin }) {
     }));
     setError('');
   };
-
-  const [message, setMessage] = useState('');
 
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -107,7 +106,6 @@ function Register({ onSwitchToLogin }) {
     }
 
     setLoading(true);
-    setMessage('');
 
     try {
       const response = await fetch('http://localhost:8081/signupuser', {
@@ -127,12 +125,7 @@ function Register({ onSwitchToLogin }) {
       const result = await response.json();
 
       if (result.success) {
-        // If server returns the new user's id, capture it and show to user / use later
-        if (result.userId) {
-          setMessage(`Success! User registered successfully.`);
-        } else {
-          setMessage('Success! User registered to database.');
-        }
+        showSuccessToast('User registered successfully!');
         setFormData({
           fullName: '',
           email: '',
@@ -142,10 +135,10 @@ function Register({ onSwitchToLogin }) {
           confirmPassword: '',
         });
       } else {
-        setError(result.error || 'An error occurred during registration');
+        showErrorToast(result.error || 'An error occurred during registration');
       }
     } catch (error) {
-      setMessage('Cannot connect to server. Make sure backend is running.');
+      showErrorToast('Cannot connect to server. Make sure backend is running.');
     } finally {
       setLoading(false);
     }
@@ -266,7 +259,6 @@ function Register({ onSwitchToLogin }) {
             </a>
           </p>
         </div>
-        {message && <div className="success-message">{message}</div>}
       </div>
     </div>
   );
