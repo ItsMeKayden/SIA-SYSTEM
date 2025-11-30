@@ -77,7 +77,12 @@ app.post('/loginuser', (req, res) => {
     if (err) {
       res.json({ success: false, error: 'Login failed: ' + err.message });
     } else if (result.length > 0) {
-      res.json({ success: true, message: 'User login successful' });
+      res.json({
+        success: true,
+        message: 'User login successful',
+        userID: result[0].fld_userID,
+        username: result[0].fld_username,
+      });
     } else {
       res.json({ success: false, error: 'Invalid email or password' });
     }
@@ -220,9 +225,11 @@ app.delete('/services/:id', (req, res) => {
   });
 });
 
-// FOR GETTING ALL ORDERS
+// FOR GETTING ALL ORDERS or ORDERS BY USER ID
 app.get('/orders', (req, res) => {
-  const sql = `
+  const { userID } = req.query;
+
+  let sql = `
     SELECT 
       o.fld_orderID,
       o.fld_userID,
@@ -237,19 +244,41 @@ app.get('/orders', (req, res) => {
     FROM tbl_orders o
     LEFT JOIN tbl_user u ON o.fld_userID = u.fld_userID
     LEFT JOIN tbl_services s ON o.fld_serviceID = s.fld_serviceID
-    ORDER BY o.fld_orderDate DESC
   `;
 
-  db.query(sql, (err, result) => {
-    if (err) {
-      res.json({
-        success: false,
-        error: 'Failed to fetch orders: ' + err.message,
-      });
-    } else {
-      res.json({ success: true, data: result });
-    }
-  });
+  // If userID is provided, filter by that userID
+  if (userID) {
+    sql += ` WHERE o.fld_userID = ? `;
+    console.log('Fetching orders for userID:', userID);
+    db.query(
+      sql + 'ORDER BY o.fld_orderDate DESC',
+      [parseInt(userID)],
+      (err, result) => {
+        if (err) {
+          res.json({
+            success: false,
+            error: 'Failed to fetch orders: ' + err.message,
+          });
+        } else {
+          res.json({ success: true, data: result });
+        }
+      }
+    );
+  } else {
+    // Fetch all orders (for admin)
+    sql += ` ORDER BY o.fld_orderDate DESC`;
+    console.log('Fetching all orders');
+    db.query(sql, (err, result) => {
+      if (err) {
+        res.json({
+          success: false,
+          error: 'Failed to fetch orders: ' + err.message,
+        });
+      } else {
+        res.json({ success: true, data: result });
+      }
+    });
+  }
 });
 
 // FOR CREATING A NEW ORDER

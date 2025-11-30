@@ -37,8 +37,11 @@ function Login({ onSwitchToRegister, onLoginSuccess }) {
         if (isAdmin && result.adminID) {
           console.log('Storing adminID:', result.adminID);
           localStorage.setItem('adminID', result.adminID);
-        } else if (isAdmin) {
-          console.log('Admin login but no adminID in response');
+        } else if (!isAdmin && result.userID) {
+          // Store user ID if logging in as regular user
+          console.log('Storing userID:', result.userID);
+          localStorage.setItem('userID', result.userID);
+          localStorage.setItem('username', result.username);
         }
         if (onLoginSuccess) {
           onLoginSuccess(isAdmin);
