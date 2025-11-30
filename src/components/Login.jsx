@@ -2,7 +2,7 @@ import { useState } from 'react';
 import '../styles/Login.css';
 
 function Login({ onSwitchToRegister, onLoginSuccess }) {
-  const [email, setEmail] = useState('');
+  const [email, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -32,14 +32,18 @@ function Login({ onSwitchToRegister, onLoginSuccess }) {
 
       if (result.success) {
         setLoading(false);
-        console.log('Login successful, result:', result);
-        // Store admin ID if logging in as admin
-        if (isAdmin && result.adminID) {
-          console.log('Storing adminID:', result.adminID);
-          localStorage.setItem('adminID', result.adminID);
-        } else if (isAdmin) {
-          console.log('Admin login but no adminID in response');
+        
+        // Store user email in localStorage
+        localStorage.setItem('userEmail', email);
+        
+        // Store other user data if available in the response
+        if (result.user) {
+          localStorage.setItem('userData', JSON.stringify(result.user));
         }
+        
+        // Store user type (admin or regular user)
+        localStorage.setItem('userType', isAdmin ? 'admin' : 'user');
+        
         if (onLoginSuccess) {
           onLoginSuccess(isAdmin);
         }
