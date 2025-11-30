@@ -10,7 +10,36 @@ function Tracking() {
 
   useEffect(() => {
     fetchUserOrders();
+
+    // Set up real-time polling to refresh orders every 3 seconds
+    const interval = setInterval(() => {
+      refreshOrderData();
+    }, 3000);
+
+    // Cleanup interval on component unmount
+    return () => clearInterval(interval);
   }, []);
+
+  const refreshOrderData = async () => {
+    try {
+      const userID = localStorage.getItem('userID');
+      if (!userID) {
+        return;
+      }
+
+      const response = await fetch(
+        `http://localhost:8081/orders?userID=${userID}`
+      );
+      const data = await response.json();
+
+      if (data.success && data.data) {
+        // Only update the orders, don't reset selection or other state
+        setOrders(data.data);
+      }
+    } catch (error) {
+      console.error('Error refreshing orders:', error);
+    }
+  };
 
   const fetchUserOrders = async () => {
     try {
@@ -28,7 +57,7 @@ function Tracking() {
 
       if (data.success && data.data) {
         setOrders(data.data);
-        if (data.data.length > 0) {
+        if (data.data.length > 0 && !selectedOrder) {
           setSelectedOrder(data.data[0].fld_orderID);
         }
       }
@@ -42,25 +71,16 @@ function Tracking() {
   const getTrackingStages = (orderStatus, orderDate) => {
     const stages = [
       { name: 'Order Received', status: 'received' },
-      { name: 'In Washing', status: 'washing' },
-      { name: 'Drying', status: 'drying' },
-      { name: 'Folding', status: 'folding' },
+      { name: 'Processing your Order', status: 'processing' },
       { name: 'Ready for Pickup', status: 'ready' },
       { name: 'Picked Up', status: 'pickedup' },
     ];
 
     const statusMap = {
       Pending: [],
-      Processing: ['received', 'washing', 'drying', 'folding'],
-      Ready: ['received', 'washing', 'drying', 'folding', 'ready'],
-      Completed: [
-        'received',
-        'washing',
-        'drying',
-        'folding',
-        'ready',
-        'pickedup',
-      ],
+      Processing: ['received', 'processing'],
+      Ready: ['received', 'processing', 'ready'],
+      Completed: ['received', 'processing', 'ready', 'pickedup'],
     };
 
     const completedStatuses = statusMap[orderStatus] || [];

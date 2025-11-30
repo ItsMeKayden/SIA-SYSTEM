@@ -32,6 +32,10 @@ function App() {
     setUserData(null);
   };
 
+  const refreshUserData = (newUserData) => {
+    setUserData(newUserData);
+  };
+
   return (
     <>
       <Toast />
@@ -43,9 +47,17 @@ function App() {
       ) : currentPage === 'register' ? (
         <Register onSwitchToLogin={handleSwitchToLogin} />
       ) : currentPage === 'admin' ? (
-        <AdminDashboard userData={userData} onLogout={handleLogout} />
+        <AdminDashboard
+          userData={userData}
+          onLogout={handleLogout}
+          onRefreshUserData={refreshUserData}
+        />
       ) : (
-        <Dashboard userData={userData} onLogout={handleLogout} />
+        <Dashboard
+          userData={userData}
+          onLogout={handleLogout}
+          onRefreshUserData={refreshUserData}
+        />
       )}
     </>
   );

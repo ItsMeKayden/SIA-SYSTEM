@@ -64,16 +64,18 @@ function Login({ onSwitchToRegister, onLoginSuccess }) {
       if (result.success) {
         setLoading(false);
         console.log('Login successful, result:', result);
+
         // Store admin ID if logging in as admin
-        if (isAdmin && result.adminID) {
-          console.log('Storing adminID:', result.adminID);
-          localStorage.setItem('adminID', result.adminID);
-        } else if (!isAdmin && result.userID) {
+        if (isAdmin && result.user.fld_adminID) {
+          console.log('Storing adminID:', result.user.fld_adminID);
+          localStorage.setItem('adminID', result.user.fld_adminID);
+          localStorage.setItem('adminEmail', email);
+        } else if (!isAdmin && result.user.fld_userID) {
           // Store user ID if logging in as regular user
-          console.log('Storing userID:', result.userID);
+          console.log('Storing userID:', result.user.fld_userID);
           console.log('Storing userEmail:', email);
-          localStorage.setItem('userID', String(result.userID));
-          localStorage.setItem('username', String(result.username));
+          localStorage.setItem('userID', String(result.user.fld_userID));
+          localStorage.setItem('username', String(result.user.fld_username));
           localStorage.setItem('userEmail', String(email));
           console.log('LocalStorage after setting:', {
             userID: localStorage.getItem('userID'),
@@ -86,7 +88,7 @@ function Login({ onSwitchToRegister, onLoginSuccess }) {
         localStorage.setItem('userType', isAdmin ? 'admin' : 'user');
 
         if (onLoginSuccess) {
-          onLoginSuccess(isAdmin);
+          onLoginSuccess(isAdmin, result.user);
         }
       } else {
         setLoading(false);

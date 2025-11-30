@@ -6,7 +6,7 @@ import Tracking from './Tracking';
 import Profile from './Profile';
 
 
-function Dashboard({ userData, onLogout }) {
+function Dashboard({ userData, onLogout, onRefreshUserData }) {
   const [activeTab, setActiveTab] = useState('orders');
   
   const getUserName = () => {
@@ -45,7 +45,7 @@ function Dashboard({ userData, onLogout }) {
         <main className="dashboard-content">
           {activeTab === 'orders' && <Orders userData={userData} />}
           {activeTab === 'tracking' && <Tracking userData={userData} />}
-          {activeTab === 'profile' && <Profile userData={userData} />}
+          {activeTab === 'profile' && <Profile userData={userData} onRefreshUserData={onRefreshUserData} />}
         </main>
       </div>
     </div>

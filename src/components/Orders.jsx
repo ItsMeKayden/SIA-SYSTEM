@@ -18,12 +18,37 @@ function Orders() {
     if (storedUserID) {
       setUserID(storedUserID);
       fetchUserOrders(storedUserID);
+
+      // Set up real-time polling to refresh orders every 3 seconds
+      const interval = setInterval(() => {
+        refreshOrderData(storedUserID);
+      }, 3000);
+
+      // Cleanup interval on component unmount
+      return () => clearInterval(interval);
     } else {
       setLoading(false);
       console.warn('No userID found in localStorage');
       alert('Please log in first');
     }
   }, []);
+
+  const refreshOrderData = async (userId) => {
+    try {
+      const response = await fetch(
+        `http://localhost:8081/orders?userID=${userId}`
+      );
+      const result = await response.json();
+      if (result.success) {
+        // Only update the orders, don't reset search or other state
+        setOrders(result.data);
+      } else {
+        console.error('Failed to refresh orders:', result.error);
+      }
+    } catch (error) {
+      console.error('Failed to refresh orders:', error);
+    }
+  };
 
   const fetchUserOrders = async (userId) => {
     try {
