@@ -1,105 +1,95 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import '../styles/AdminOrders.css';
 
 function AdminOrders() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [orders, setOrders] = useState([
-    {
-      id: 'ORD-001',
-      customer: 'John Doe',
-      date: '2025-11-09',
-      items: '5 shirts, 2 pants',
-      status: 'processing',
-      total: '$25.50',
-    },
-    {
-      id: 'ORD-002',
-      customer: 'Jane Smith',
-      date: '2025-11-05',
-      items: '3 dresses, 1 jacket',
-      status: 'ready',
-      total: '$45.00',
-    },
-    {
-      id: 'ORD-003',
-      customer: 'Bob Johnson',
-      date: '2025-11-04',
-      items: '10 shirts',
-      status: 'pending',
-      total: '$35.00',
-    },
-    {
-      id: 'ORD-004',
-      customer: 'Alice Brown',
-      date: '2025-11-04',
-      items: '2 blankets',
-      status: 'completed',
-      total: '$50.00',
-    },
-    {
-      id: 'ORD-005',
-      customer: 'Charlie Wilson',
-      date: '2025-11-02',
-      items: '4 pants, 6 shirts',
-      status: 'pending',
-      total: '$35.00',
-    },
-  ]);
+  const [orders, setOrders] = useState([]);
+  const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [adminID, setAdminID] = useState(null);
 
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [viewOrder, setViewOrder] = useState(null);
   const [editOrder, setEditOrder] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editFormData, setEditFormData] = useState({
-    customer: '',
-    date: '',
+    userID: '',
+    selectedServices: [],
+    orderDate: '',
+    status: 'Pending',
+    amount: '',
     items: '',
-    total: '',
   });
   const [newOrderForm, setNewOrderForm] = useState({
-    customer: '',
-    date: '',
+    userID: '',
+    userName: '',
+    orderDate: '',
     items: '',
-    status: 'pending',
+    status: 'Pending',
     selectedServices: [],
-    total: '$0.00',
+    amount: '$0.00',
   });
 
-  const [services] = useState([
-    {
-      id: 1,
-      name: 'Wash & Fold',
-      price: 15.0,
-      status: 'Available',
-    },
-    {
-      id: 2,
-      name: 'Dry Cleaning',
-      price: 25.0,
-      status: 'Available',
-    },
-    {
-      id: 3,
-      name: 'Iron & Press',
-      price: 10.0,
-      status: 'Available',
-    },
-    {
-      id: 4,
-      name: 'Express Service',
-      price: 35.0,
-      status: 'Not Available',
-    },
-  ]);
+  // Fetch orders and services on component mount
+  useEffect(() => {
+    // Get admin ID from localStorage
+    const storedAdminID = localStorage.getItem('adminID');
+    if (storedAdminID) {
+      setAdminID(storedAdminID);
+    }
+    fetchOrders();
+    fetchServices();
+  }, []);
+
+  const fetchOrders = async () => {
+    try {
+      const response = await fetch('http://localhost:8081/orders');
+      const result = await response.json();
+      if (result.success) {
+        setOrders(result.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch orders:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchServices = async () => {
+    try {
+      console.log('Fetching services...');
+      const response = await fetch('http://localhost:8081/services');
+      const result = await response.json();
+      console.log('Services response:', result);
+      if (result.success) {
+        console.log('Services loaded:', result.data);
+        setServices(result.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch services:', error);
+    }
+  };
 
   const ordersData = orders;
 
   const handleStatusChange = (orderId, newStatus) => {
+    // Update locally
     setOrders(
       orders.map((order) =>
-        order.id === orderId ? { ...order, status: newStatus } : order
+        order.fld_orderID === orderId
+          ? { ...order, fld_orderStatus: newStatus }
+          : order
       )
     );
+
+    // Update in database
+    fetch(`http://localhost:8081/orders/${orderId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ status: newStatus }),
+    }).catch((error) => console.error('Failed to update status:', error));
   };
 
   const handleViewClick = (order) => {
@@ -111,16 +101,21 @@ function AdminOrders() {
   };
 
   const handleEditClick = (order) => {
-    setEditOrder(order.id);
+    setEditOrder(order.fld_orderID);
+    // Convert ISO date to yyyy-MM-dd format for date input
+    const dateObject = new Date(order.fld_orderDate);
+    const formattedDate = dateObject.toISOString().split('T')[0];
     setEditFormData({
-      customer: order.customer,
-      date: order.date,
-      items: order.items,
-      total: order.total,
+      userID: order.fld_userID,
+      selectedServices: [order.fld_serviceID],
+      orderDate: formattedDate,
+      status: order.fld_orderStatus,
+      amount: order.fld_amount,
+      items: order.fld_items || '',
     });
   };
 
-  const handleEditChange = (e) => {
+  const handleEditFormChange = (e) => {
     const { name, value } = e.target;
     setEditFormData((prev) => ({
       ...prev,
@@ -128,13 +123,78 @@ function AdminOrders() {
     }));
   };
 
-  const handleSaveEdit = () => {
-    setOrders(
-      orders.map((order) =>
-        order.id === editOrder ? { ...order, ...editFormData } : order
-      )
-    );
-    setEditOrder(null);
+  const handleEditServiceToggle = (serviceId) => {
+    setEditFormData((prev) => {
+      // For single selection - if already selected, deselect it; otherwise select it
+      const updatedServices = prev.selectedServices.includes(serviceId)
+        ? []
+        : [serviceId];
+
+      // Calculate total price from database services
+      const totalPrice = updatedServices.reduce((sum, id) => {
+        const service = services.find((s) => s.fld_serviceID === id);
+        return sum + (service ? parseFloat(service.fld_servicePrice) : 0);
+      }, 0);
+
+      return {
+        ...prev,
+        selectedServices: updatedServices,
+        amount: totalPrice.toFixed(2),
+      };
+    });
+  };
+
+  const handleSaveEdit = async () => {
+    console.log('=== handleSaveEdit called ===');
+    console.log('editFormData:', editFormData);
+    console.log('editOrder:', editOrder);
+
+    if (!editFormData.selectedServices.length) {
+      alert('Please select at least one service');
+      return;
+    }
+
+    try {
+      const orderData = {
+        serviceID: editFormData.selectedServices[0],
+        orderDate: editFormData.orderDate,
+        status: editFormData.status,
+        amount: editFormData.amount,
+        items: editFormData.items,
+      };
+
+      console.log(
+        'Sending PUT request to:',
+        `http://localhost:8081/orders/${editOrder}`
+      );
+      console.log('Order data:', orderData);
+
+      const response = await fetch(
+        `http://localhost:8081/orders/${editOrder}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(orderData),
+        }
+      );
+
+      const result = await response.json();
+      console.log('Response from server:', result);
+
+      if (result.success) {
+        // Refresh orders from backend to ensure latest data
+        await fetchOrders();
+        setEditOrder(null);
+        alert('Order updated successfully!');
+      } else {
+        alert('Failed to update order: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Failed to update order:', error);
+      alert('Failed to update order');
+    }
   };
 
   const handleCancelEdit = () => {
@@ -146,7 +206,21 @@ function AdminOrders() {
   };
 
   const confirmDelete = (orderId) => {
-    setOrders(orders.filter((order) => order.id !== orderId));
+    if (!orderId) return;
+
+    fetch(`http://localhost:8081/orders/${orderId}`, {
+      method: 'DELETE',
+    })
+      .then((response) => response.json())
+      .then((result) => {
+        if (result.success) {
+          // Remove from local state
+          setOrders(orders.filter((order) => order.fld_orderID !== orderId));
+          console.log('Order deleted successfully');
+        }
+      })
+      .catch((error) => console.error('Failed to delete order:', error));
+
     setDeleteConfirm(null);
   };
 
@@ -165,22 +239,16 @@ function AdminOrders() {
         ? prev.selectedServices.filter((id) => id !== serviceId)
         : [...prev.selectedServices, serviceId];
 
-      // Calculate total price
+      // Calculate total price from database services
       const totalPrice = updatedServices.reduce((sum, id) => {
-        const service = services.find((s) => s.id === id);
-        return sum + (service ? service.price : 0);
+        const service = services.find((s) => s.fld_serviceID === id);
+        return sum + (service ? parseFloat(service.fld_servicePrice) : 0);
       }, 0);
-
-      // Build items description
-      const itemsDescription = updatedServices
-        .map((id) => services.find((s) => s.id === id)?.name)
-        .join(', ');
 
       return {
         ...prev,
         selectedServices: updatedServices,
-        items: itemsDescription || '',
-        total: `$${totalPrice.toFixed(2)}`,
+        amount: `$${totalPrice.toFixed(2)}`,
       };
     });
   };
@@ -188,12 +256,13 @@ function AdminOrders() {
   const handleCloseAddForm = () => {
     setShowAddForm(false);
     setNewOrderForm({
-      customer: '',
-      date: '',
+      userID: '',
+      userName: '',
+      orderDate: '',
       items: '',
-      status: 'pending',
+      status: 'Pending',
       selectedServices: [],
-      total: '$0.00',
+      amount: '$0.00',
     });
   };
 
@@ -203,34 +272,95 @@ function AdminOrders() {
       ...prev,
       [name]: value,
     }));
+
+    // If userID field changed, fetch user data
+    if (name === 'userID' && value) {
+      fetchUserData(value);
+    }
   };
 
-  const handleSubmitAddOrder = (e) => {
+  const fetchUserData = async (userID) => {
+    try {
+      console.log('Fetching user data for ID:', userID);
+      const response = await fetch(`http://localhost:8081/users/${userID}`);
+      const result = await response.json();
+      console.log('User fetch result:', result);
+      if (result.success && result.data) {
+        setNewOrderForm((prev) => ({
+          ...prev,
+          userName: result.data.fld_username || 'User does not exist',
+        }));
+      } else {
+        setNewOrderForm((prev) => ({
+          ...prev,
+          userName: 'User does not exist',
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to fetch user:', error);
+      setNewOrderForm((prev) => ({
+        ...prev,
+        userName: 'User does not exist',
+      }));
+    }
+  };
+
+  const handleSubmitAddOrder = async (e) => {
     e.preventDefault();
+    console.log('Current adminID:', adminID);
     if (
-      newOrderForm.customer &&
-      newOrderForm.date &&
-      newOrderForm.selectedServices.length > 0
+      newOrderForm.userID &&
+      newOrderForm.orderDate &&
+      newOrderForm.selectedServices.length > 0 &&
+      newOrderForm.items.trim() !== ''
     ) {
-      const newOrder = {
-        id: `ORD-${String(
-          Math.max(...orders.map((o) => parseInt(o.id.split('-')[1])), 0) + 1
-        ).padStart(3, '0')}`,
-        customer: newOrderForm.customer,
-        date: newOrderForm.date,
-        items: newOrderForm.items,
-        status: newOrderForm.status,
-        total: newOrderForm.total,
-      };
-      setOrders([...orders, newOrder]);
-      handleCloseAddForm();
+      try {
+        const orderData = {
+          userID: parseInt(newOrderForm.userID),
+          serviceID: newOrderForm.selectedServices[0],
+          orderDate: newOrderForm.orderDate,
+          status: newOrderForm.status,
+          amount: newOrderForm.amount.replace('$', ''),
+          adminID: adminID,
+          items: newOrderForm.items,
+        };
+        console.log('Sending order data:', orderData);
+
+        const response = await fetch('http://localhost:8081/orders', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(orderData),
+        });
+        const result = await response.json();
+        if (result.success) {
+          fetchOrders();
+          handleCloseAddForm();
+        } else {
+          alert('Failed to create order: ' + result.error);
+        }
+      } catch (error) {
+        console.error('Failed to create order:', error);
+        alert('Failed to create order');
+      }
+    } else {
+      alert('Please fill in all required fields including Items');
     }
   };
 
   const filteredOrders = ordersData.filter(
     (order) =>
-      order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customer.toLowerCase().includes(searchTerm.toLowerCase())
+      (order.fld_orderID &&
+        order.fld_orderID
+          .toString()
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase())) ||
+      (order.fld_userID &&
+        order.fld_userID
+          .toString()
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()))
   );
 
   const getStatusColor = (status) => {
@@ -277,6 +407,7 @@ function AdminOrders() {
               <th>Order ID</th>
               <th>Customer</th>
               <th>Date</th>
+              <th>Service</th>
               <th>Items</th>
               <th>Status</th>
               <th>Total</th>
@@ -284,51 +415,65 @@ function AdminOrders() {
             </tr>
           </thead>
           <tbody>
-            {filteredOrders.map((order) => (
-              <tr key={order.id}>
-                <td className="order-id-cell">{order.id}</td>
-                <td>{order.customer}</td>
-                <td>{order.date}</td>
-                <td>{order.items}</td>
-                <td>
-                  <select
-                    className="status-select"
-                    value={order.status}
-                    onChange={(e) =>
-                      handleStatusChange(order.id, e.target.value)
-                    }
-                  >
-                    <option value="pending">Pending</option>
-                    <option value="processing">Processing</option>
-                    <option value="ready">Ready</option>
-                    <option value="completed">Completed</option>
-                  </select>
-                </td>
-                <td className="total-cell">{order.total}</td>
-                <td className="actions-cell">
-                  <button
-                    className="action-btn view-btn"
-                    onClick={() => handleViewClick(order)}
-                    title="View"
-                  >
-                    👁️
-                  </button>
-                  <button
-                    className="action-btn edit-btn"
-                    onClick={() => handleEditClick(order)}
-                    title="Edit"
-                  >
-                    ✏️
-                  </button>
-                  <button
-                    className="action-btn delete-btn"
-                    onClick={() => handleDeleteClick(order.id)}
-                  >
-                    🗑️
-                  </button>
+            {filteredOrders && filteredOrders.length > 0 ? (
+              filteredOrders.map((order) => (
+                <tr key={order.fld_orderID}>
+                  <td className="order-id-cell">{order.fld_orderID}</td>
+                  <td>{order.fld_username || '-'}</td>
+                  <td>{new Date(order.fld_orderDate).toLocaleDateString()}</td>
+                  <td>{order.fld_serviceName || '-'}</td>
+                  <td>{order.fld_items || '-'}</td>
+                  <td>
+                    <select
+                      className="status-select"
+                      value={order.fld_orderStatus}
+                      onChange={(e) =>
+                        handleStatusChange(order.fld_orderID, e.target.value)
+                      }
+                    >
+                      <option value="Pending">Pending</option>
+                      <option value="Processing">Processing</option>
+                      <option value="Ready">Ready</option>
+                      <option value="Completed">Completed</option>
+                    </select>
+                  </td>
+                  <td className="total-cell">
+                    ${parseFloat(order.fld_amount).toFixed(2)}
+                  </td>
+                  <td className="actions-cell">
+                    <button
+                      className="action-btn view-btn"
+                      onClick={() => handleViewClick(order)}
+                      title="View"
+                    >
+                      👁️
+                    </button>
+                    <button
+                      className="action-btn edit-btn"
+                      onClick={() => handleEditClick(order)}
+                      title="Edit"
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      className="action-btn delete-btn"
+                      onClick={() => handleDeleteClick(order.fld_orderID)}
+                    >
+                      🗑️
+                    </button>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td
+                  colSpan="8"
+                  style={{ textAlign: 'center', padding: '20px' }}
+                >
+                  No orders available
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>
@@ -369,22 +514,27 @@ function AdminOrders() {
             <div className="order-details">
               <div className="detail-group">
                 <label>Order ID</label>
-                <p>{viewOrder.id}</p>
+                <p>{viewOrder.fld_orderID}</p>
               </div>
 
               <div className="detail-group">
                 <label>Customer Name</label>
-                <p>{viewOrder.customer}</p>
+                <p>{viewOrder.fld_username || '-'}</p>
               </div>
 
               <div className="detail-group">
                 <label>Order Date</label>
-                <p>{viewOrder.date}</p>
+                <p>{new Date(viewOrder.fld_orderDate).toLocaleDateString()}</p>
+              </div>
+
+              <div className="detail-group">
+                <label>Service</label>
+                <p>{viewOrder.fld_serviceName || '-'}</p>
               </div>
 
               <div className="detail-group">
                 <label>Items</label>
-                <p>{viewOrder.items}</p>
+                <p>{viewOrder.fld_items || '-'}</p>
               </div>
 
               <div className="detail-group">
@@ -393,17 +543,21 @@ function AdminOrders() {
                   <span
                     className="status-badge-detail"
                     style={{
-                      backgroundColor: getStatusColor(viewOrder.status),
+                      backgroundColor: getStatusColor(
+                        viewOrder.fld_orderStatus
+                      ),
                     }}
                   >
-                    {viewOrder.status}
+                    {viewOrder.fld_orderStatus}
                   </span>
                 </p>
               </div>
 
               <div className="detail-group">
                 <label>Total Amount</label>
-                <p className="total-amount">{viewOrder.total}</p>
+                <p className="total-amount">
+                  ${parseFloat(viewOrder.fld_amount).toFixed(2)}
+                </p>
               </div>
 
               <div className="detail-actions">
@@ -434,15 +588,77 @@ function AdminOrders() {
               className="edit-form"
             >
               <div className="form-group">
-                <label htmlFor="edit-customer">Customer Name</label>
+                <label htmlFor="edit-orderID">Order ID</label>
                 <input
                   type="text"
-                  id="edit-customer"
-                  name="customer"
-                  value={editFormData.customer}
-                  onChange={handleEditChange}
-                  required
+                  id="edit-orderID"
+                  name="orderID"
+                  value={editOrder}
+                  disabled
+                  readOnly
+                  className="read-only-field"
                 />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="edit-userID">User ID</label>
+                <input
+                  type="text"
+                  id="edit-userID"
+                  name="userID"
+                  value={editFormData.userID}
+                  disabled
+                  readOnly
+                  className="read-only-field"
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="edit-userName">Customer Name</label>
+                <input
+                  type="text"
+                  id="edit-userName"
+                  name="userName"
+                  value={
+                    orders.find((o) => o.fld_orderID === editOrder)
+                      ?.fld_username || '-'
+                  }
+                  disabled
+                  readOnly
+                  className="read-only-field"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Select Service</label>
+                <div className="services-checkboxes">
+                  {services && services.length > 0 ? (
+                    services.map((service) => (
+                      <label
+                        key={service.fld_serviceID}
+                        className="service-checkbox"
+                      >
+                        <input
+                          type="radio"
+                          name="editService"
+                          checked={editFormData.selectedServices.includes(
+                            service.fld_serviceID
+                          )}
+                          onChange={() =>
+                            handleEditServiceToggle(service.fld_serviceID)
+                          }
+                          disabled={service.fld_serviceStatus !== 'Available'}
+                        />
+                        <span className="checkbox-label">
+                          {service.fld_serviceName} - $
+                          {parseFloat(service.fld_servicePrice).toFixed(2)}
+                        </span>
+                      </label>
+                    ))
+                  ) : (
+                    <p>No services available</p>
+                  )}
+                </div>
               </div>
 
               <div className="form-group">
@@ -450,11 +666,27 @@ function AdminOrders() {
                 <input
                   type="date"
                   id="edit-date"
-                  name="date"
-                  value={editFormData.date}
-                  onChange={handleEditChange}
+                  name="orderDate"
+                  value={editFormData.orderDate}
+                  onChange={handleEditFormChange}
                   required
                 />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="edit-status">Status</label>
+                <select
+                  id="edit-status"
+                  name="status"
+                  value={editFormData.status}
+                  onChange={handleEditFormChange}
+                  required
+                >
+                  <option value="Pending">Pending</option>
+                  <option value="Processing">Processing</option>
+                  <option value="Ready">Ready</option>
+                  <option value="Completed">Completed</option>
+                </select>
               </div>
 
               <div className="form-group">
@@ -463,21 +695,26 @@ function AdminOrders() {
                   id="edit-items"
                   name="items"
                   value={editFormData.items}
-                  onChange={handleEditChange}
+                  onChange={handleEditFormChange}
+                  placeholder="Enter the items ordered"
                   rows="3"
                   required
-                />
+                ></textarea>
               </div>
 
               <div className="form-group">
-                <label htmlFor="edit-total">Total Amount</label>
+                <label htmlFor="edit-amount">
+                  Total Amount (Auto-calculated)
+                </label>
                 <input
                   type="text"
-                  id="edit-total"
-                  name="total"
-                  value={editFormData.total}
-                  onChange={handleEditChange}
-                  required
+                  id="edit-amount"
+                  name="amount"
+                  value={`$${parseFloat(editFormData.amount || 0).toFixed(2)}`}
+                  placeholder="$0.00"
+                  readOnly
+                  disabled
+                  className="read-only-field"
                 />
               </div>
 
@@ -510,15 +747,28 @@ function AdminOrders() {
 
             <form className="add-order-form" onSubmit={handleSubmitAddOrder}>
               <div className="form-group">
-                <label htmlFor="add-customer">Customer Name</label>
+                <label htmlFor="add-userID">User ID</label>
+                <input
+                  type="number"
+                  id="add-userID"
+                  name="userID"
+                  value={newOrderForm.userID}
+                  onChange={handleAddFormChange}
+                  placeholder="Enter user ID"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="add-userName">Customer Name</label>
                 <input
                   type="text"
-                  id="add-customer"
-                  name="customer"
-                  value={newOrderForm.customer}
-                  onChange={handleAddFormChange}
-                  placeholder="Enter customer name"
-                  required
+                  id="add-userName"
+                  name="userName"
+                  value={newOrderForm.userName}
+                  readOnly
+                  className="read-only-field"
+                  placeholder="Enter user ID above"
                 />
               </div>
 
@@ -527,8 +777,8 @@ function AdminOrders() {
                 <input
                   type="date"
                   id="add-date"
-                  name="date"
-                  value={newOrderForm.date}
+                  name="orderDate"
+                  value={newOrderForm.orderDate}
                   onChange={handleAddFormChange}
                   required
                 />
@@ -537,34 +787,44 @@ function AdminOrders() {
               <div className="form-group">
                 <label>Select Services</label>
                 <div className="services-checkboxes">
-                  {services.map((service) => (
-                    <label key={service.id} className="service-checkbox">
-                      <input
-                        type="checkbox"
-                        checked={newOrderForm.selectedServices.includes(
-                          service.id
-                        )}
-                        onChange={() => handleServiceToggle(service.id)}
-                        disabled={service.status === 'Not Available'}
-                      />
-                      <span className="checkbox-label">
-                        {service.name} - ${service.price.toFixed(2)}
-                      </span>
-                    </label>
-                  ))}
+                  {services && services.length > 0 ? (
+                    services.map((service) => (
+                      <label
+                        key={service.fld_serviceID}
+                        className="service-checkbox"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={newOrderForm.selectedServices.includes(
+                            service.fld_serviceID
+                          )}
+                          onChange={() =>
+                            handleServiceToggle(service.fld_serviceID)
+                          }
+                          disabled={service.fld_serviceStatus !== 'Available'}
+                        />
+                        <span className="checkbox-label">
+                          {service.fld_serviceName} - $
+                          {parseFloat(service.fld_servicePrice).toFixed(2)}
+                        </span>
+                      </label>
+                    ))
+                  ) : (
+                    <p>No services available</p>
+                  )}
                 </div>
               </div>
 
               <div className="form-group">
-                <label htmlFor="add-items">Items (Auto-populated)</label>
+                <label htmlFor="add-items">Items</label>
                 <textarea
                   id="add-items"
                   name="items"
                   value={newOrderForm.items}
-                  placeholder="Services will appear here"
+                  onChange={handleAddFormChange}
+                  placeholder="Enter the items ordered"
                   rows="3"
-                  readOnly
-                  className="read-only-field"
+                  required
                 ></textarea>
               </div>
 
@@ -576,10 +836,10 @@ function AdminOrders() {
                   value={newOrderForm.status}
                   onChange={handleAddFormChange}
                 >
-                  <option value="pending">Pending</option>
-                  <option value="processing">Processing</option>
-                  <option value="ready">Ready</option>
-                  <option value="completed">Completed</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Processing">Processing</option>
+                  <option value="Ready">Ready</option>
+                  <option value="Completed">Completed</option>
                 </select>
               </div>
 
@@ -590,8 +850,8 @@ function AdminOrders() {
                 <input
                   type="text"
                   id="add-total"
-                  name="total"
-                  value={newOrderForm.total}
+                  name="amount"
+                  value={newOrderForm.amount}
                   placeholder="$0.00"
                   readOnly
                   className="read-only-field"

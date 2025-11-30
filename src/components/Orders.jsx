@@ -1,53 +1,60 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import '../styles/Orders.css';
 
 function Orders() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [userID, setUserID] = useState(null);
 
-  const ordersData = [
-    {
-      id: 'ORD-001',
-      date: '2025-11-09',
-      items: '5 shirts, 2 pants',
-      status: 'processing',
-      total: '$25.50',
-    },
-    {
-      id: 'ORD-002',
-      date: '2025-11-04',
-      items: '3 dresses, 1 jacket',
-      status: 'ready',
-      total: '$45.00',
-    },
-    {
-      id: 'ORD-003',
-      date: '2025-11-03',
-      items: '10 shirts',
-      status: 'completed',
-      total: '$35.00',
-    },
-    {
-      id: 'ORD-004',
-      date: '2025-11-02',
-      items: '2 blankets',
-      status: 'completed',
-      total: '$50.00',
-    },
-    {
-      id: 'ORD-005',
-      date: '2025-11-01',
-      items: '4 pants, 6 shirts',
-      status: 'pending',
-      total: '$35.00',
-    },
-  ];
+  // Fetch orders on component mount
+  useEffect(() => {
+    // Get userID from localStorage
+    const storedUserID = localStorage.getItem('userID');
+    console.log('Orders component mounted. Stored userID:', storedUserID);
+    console.log('All localStorage items:', JSON.stringify(localStorage));
 
-  const filteredOrders = ordersData.filter((order) =>
-    order.id.toLowerCase().includes(searchTerm.toLowerCase())
+    if (storedUserID) {
+      setUserID(storedUserID);
+      fetchUserOrders(storedUserID);
+    } else {
+      setLoading(false);
+      console.warn('No userID found in localStorage');
+      alert('Please log in first');
+    }
+  }, []);
+
+  const fetchUserOrders = async (userId) => {
+    try {
+      const response = await fetch(
+        `http://localhost:8081/orders?userID=${userId}`
+      );
+      const result = await response.json();
+      if (result.success) {
+        setOrders(result.data);
+      } else {
+        console.error('Failed to fetch orders:', result.error);
+      }
+    } catch (error) {
+      console.error('Failed to fetch orders:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredOrders = orders.filter(
+    (order) =>
+      (order.fld_orderID &&
+        order.fld_orderID
+          .toString()
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase())) ||
+      (order.fld_items &&
+        order.fld_items.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const getStatusColor = (status) => {
-    switch (status) {
+    switch (status?.toLowerCase()) {
       case 'processing':
         return '#3498db';
       case 'ready':
@@ -61,17 +68,29 @@ function Orders() {
     }
   };
 
+  if (loading) {
+    return (
+      <section className="orders-section">
+        <p style={{ textAlign: 'center', padding: '20px' }}>
+          Loading orders...
+        </p>
+      </section>
+    );
+  }
+
   return (
     <section className="orders-section">
       <div className="orders-header">
-        <h3>Order List</h3>
-        <p className="orders-subtitle">View and search your laundry orders</p>
+        <div className="header-content">
+          <h3>My Orders</h3>
+          <p className="orders-subtitle">View and track your orders</p>
+        </div>
       </div>
 
       <div className="search-box">
         <input
           type="text"
-          placeholder="Search orders..."
+          placeholder="Search orders by ID or items..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="search-input"
@@ -84,37 +103,48 @@ function Orders() {
             <tr>
               <th>Order ID</th>
               <th>Date</th>
+              <th>Service</th>
               <th>Items</th>
               <th>Status</th>
               <th>Total</th>
             </tr>
           </thead>
           <tbody>
-            {filteredOrders.map((order) => (
-              <tr key={order.id}>
-                <td className="order-id">{order.id}</td>
-                <td>{order.date}</td>
-                <td>{order.items}</td>
-                <td>
-                  <span
-                    className="status-badge"
-                    style={{ backgroundColor: getStatusColor(order.status) }}
-                  >
-                    {order.status}
-                  </span>
+            {filteredOrders && filteredOrders.length > 0 ? (
+              filteredOrders.map((order) => (
+                <tr key={order.fld_orderID}>
+                  <td className="order-id">{order.fld_orderID}</td>
+                  <td>{new Date(order.fld_orderDate).toLocaleDateString()}</td>
+                  <td>{order.fld_serviceName || '-'}</td>
+                  <td>{order.fld_items || '-'}</td>
+                  <td>
+                    <span
+                      className="status-badge"
+                      style={{
+                        backgroundColor: getStatusColor(order.fld_orderStatus),
+                      }}
+                    >
+                      {order.fld_orderStatus}
+                    </span>
+                  </td>
+                  <td className="total">
+                    ${parseFloat(order.fld_amount).toFixed(2)}
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td
+                  colSpan="6"
+                  style={{ textAlign: 'center', padding: '20px' }}
+                >
+                  No orders available
                 </td>
-                <td className="total">{order.total}</td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>
-
-      {filteredOrders.length === 0 && (
-        <div className="no-results">
-          <p>No orders found matching your search.</p>
-        </div>
-      )}
     </section>
   );
 }

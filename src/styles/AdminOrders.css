@@ -88,6 +88,14 @@
   padding: 15px;
   border-bottom: 1px solid #e0e0e0;
   color: #555;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.admin-table td:nth-child(5) {
+  max-width: 200px;
+  white-space: pre-wrap;
 }
 
 .admin-table tbody tr:hover {
@@ -352,6 +360,11 @@
   font-size: 16px;
   color: #333;
   font-weight: 500;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  line-height: 1.6;
 }
 
 .status-badge-detail {
@@ -493,9 +506,9 @@
 }
 
 .services-checkboxes {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   padding: 15px;
   background-color: #f9f9f9;
   border-radius: 6px;
@@ -507,13 +520,22 @@
   align-items: center;
   gap: 10px;
   cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
 }
 
-.service-checkbox input[type='checkbox'] {
+.service-checkbox:hover {
+  background-color: #f0f0f0;
+}
+
+.service-checkbox input[type='checkbox'],
+.service-checkbox input[type='radio'] {
   width: 18px;
   height: 18px;
   cursor: pointer;
   accent-color: #667eea;
+  flex-shrink: 0;
 }
 
 .service-checkbox input[type='checkbox']:disabled {
@@ -527,6 +549,7 @@
   color: #333;
   font-weight: 500;
   cursor: pointer;
+  user-select: none;
 }
 
 .read-only-field {
