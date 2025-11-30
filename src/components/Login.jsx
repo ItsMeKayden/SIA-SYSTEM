@@ -32,6 +32,18 @@ function Login({ onSwitchToRegister, onLoginSuccess }) {
 
       if (result.success) {
         setLoading(false);
+        
+        // Store user email in localStorage
+        localStorage.setItem('userEmail', email);
+        
+        // Store other user data if available in the response
+        if (result.user) {
+          localStorage.setItem('userData', JSON.stringify(result.user));
+        }
+        
+        // Store user type (admin or regular user)
+        localStorage.setItem('userType', isAdmin ? 'admin' : 'user');
+        
         if (onLoginSuccess) {
           onLoginSuccess(isAdmin);
         }

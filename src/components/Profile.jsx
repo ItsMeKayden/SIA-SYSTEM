@@ -1,13 +1,53 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import '../styles/Profile.css';
 
 function Profile() {
   const [profileData, setProfileData] = useState({
-    fullName: 'John Chloring',
-    email: 'johnson@gmail.com',
-    phone: '+1 (555) 123-4567',
-    address: '123 Main Street, Apt 4B, New York, NY 10001',
+    fullName: '',
+    email: '',
+    phone: '',
+    address: '',
   });
+  const [loading, setLoading] = useState(true);
+
+  // Get the logged-in user's email from localStorage
+  const getLoggedInUserEmail = () => {
+    return localStorage.getItem('userEmail') || '';
+  };
+
+  // Fetch user data on component mount
+  useEffect(() => {
+    fetchUserData();
+  }, []);
+
+  const fetchUserData = async () => {
+    try {
+      const userEmail = getLoggedInUserEmail();
+      if (!userEmail) {
+        console.error('No user email found');
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch(`http://localhost:8081/getuser/${userEmail}`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setProfileData({
+          fullName: data.user.fld_username || '',
+          email: data.user.fld_email || '',
+          phone: data.user.fld_contact || '',
+          address: '', // You'll need to fetch this from tbl_address separately
+        });
+      } else {
+        console.error('Failed to fetch user data:', data.error);
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -17,10 +57,38 @@ function Profile() {
     }));
   };
 
-  const handleSave = () => {
-    console.log('Profile updated:', profileData);
-    alert('Profile changes saved successfully!');
+  const handleSave = async () => {
+    try {
+      const userEmail = getLoggedInUserEmail();
+      const response = await fetch('http://localhost:8081/updateuser', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: userEmail,
+          updates: profileData
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        alert('Profile changes saved successfully!');
+        // Refresh data to show updated information
+        fetchUserData();
+      } else {
+        alert('Failed to save changes: ' + data.error);
+      }
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      alert('Error saving profile changes');
+    }
   };
+
+  if (loading) {
+    return <div className="loading">Loading profile...</div>;
+  }
 
   return (
     <section className="profile-section">
@@ -74,7 +142,7 @@ function Profile() {
             name="address"
             value={profileData.address}
             onChange={handleChange}
-            placeholder="Enter your address (e.g., 123 Main Street, Apt 4B)"
+            placeholder="Enter your address"
           />
         </div>
 

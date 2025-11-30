@@ -129,6 +129,44 @@ app.post('/loginuser', (req, res) => {
   });
 });
 
+// FOR GETTING USER DATA AFTER LOGIN
+app.get('/getuser/:email', (req, res) => {
+  const userEmail = req.params.email;
+  
+  const sql = 'SELECT fld_username, fld_email, fld_contact, fld_address FROM tbl_user WHERE fld_email = ?';
+  
+  db.query(sql, [userEmail], (err, result) => {
+    if (err) {
+      return res.json({ success: false, error: 'Database error: ' + err.message });
+    }
+    
+    if (result.length === 0) {
+      return res.json({ success: false, error: 'User not found' });
+    }
+    
+    res.json({ success: true, user: result[0] });
+  });
+});
+
+// FOR UPDATING PROFILE
+app.put('/updateuser', (req, res) => {
+  const { email, updates } = req.body;
+  
+  const sql = 'UPDATE tbl_user SET fld_username = ?, fld_contact = ? WHERE fld_email = ?';
+  
+  db.query(sql, [updates.fullName, updates.phone, email], (err, result) => {
+    if (err) {
+      return res.json({ success: false, error: 'Update failed: ' + err.message });
+    }
+    
+    if (result.affectedRows === 0) {
+      return res.json({ success: false, error: 'User not found' });
+    }
+    
+    res.json({ success: true, message: 'Profile updated successfully' });
+  });
+});
+
 // FOR GETTING ALL SERVICES
 app.get('/services', (req, res) => {
   const sql = 'SELECT * FROM tbl_services';
