@@ -229,6 +229,25 @@ app.put('/updateuser', (req, res) => {
   });
 });
 
+// FOR VERIFYING OLD PASSWORD
+app.post('/verifypassword', (req, res) => {
+  const { email, oldPassword } = req.body;
+  
+  const sql = 'SELECT fld_password FROM tbl_user WHERE fld_email = ? AND fld_password = ?';
+  
+  db.query(sql, [email, oldPassword], (err, result) => {
+    if (err) {
+      return res.json({ success: false, error: 'Verification failed: ' + err.message });
+    }
+    
+    if (result.length === 0) {
+      return res.json({ success: false, error: 'Old password is incorrect' });
+    }
+    
+    res.json({ success: true, message: 'Password verified successfully' });
+  });
+});
+
 // FOR UPDATING PASSWORD
 app.put('/updatepassword', (req, res) => {
   const { email, newPassword } = req.body;
