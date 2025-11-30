@@ -229,6 +229,25 @@ app.put('/updateuser', (req, res) => {
   });
 });
 
+// FOR UPDATING PASSWORD
+app.put('/updatepassword', (req, res) => {
+  const { email, newPassword } = req.body;
+  
+  const sql = 'UPDATE tbl_user SET fld_password = ? WHERE fld_email = ?';
+  
+  db.query(sql, [newPassword, email], (err, result) => {
+    if (err) {
+      return res.json({ success: false, error: 'Password update failed: ' + err.message });
+    }
+    
+    if (result.affectedRows === 0) {
+      return res.json({ success: false, error: 'User not found' });
+    }
+    
+    res.json({ success: true, message: 'Password updated successfully' });
+  });
+});
+
 // FOR GETTING ALL SERVICES
 app.get('/services', (req, res) => {
   const sql = 'SELECT * FROM tbl_services';

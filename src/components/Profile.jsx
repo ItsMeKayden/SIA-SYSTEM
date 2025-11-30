@@ -8,6 +8,10 @@ function Profile({ onRefreshUserData }) {
     phone: '',
     address: '',
   });
+  const [passwordData, setPasswordData] = useState({
+    newPassword: '',
+    confirmPassword: ''
+  });
   const [userId, setUserId] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -66,9 +70,49 @@ function Profile({ onRefreshUserData }) {
     }));
   };
 
+  const handlePasswordChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
   const handleSave = async () => {
     try {
       const userEmail = getLoggedInUserEmail();
+      
+      // Check if passwords match and are not empty
+      if (passwordData.newPassword && passwordData.confirmPassword) {
+        if (passwordData.newPassword !== passwordData.confirmPassword) {
+          alert('Passwords do not match!');
+          return;
+        }
+        
+        if (passwordData.newPassword.length < 6) {
+          alert('Password must be at least 6 characters long!');
+          return;
+        }
+
+        // Update password first
+        const passwordResponse = await fetch('http://localhost:8081/updatepassword', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: userEmail,
+            newPassword: passwordData.newPassword
+          })
+        });
+        
+        const passwordResult = await passwordResponse.json();
+        
+        if (!passwordResult.success) {
+          alert('Password update failed: ' + passwordResult.error);
+          return;
+        }
+      }
       
       // FOR UPDATING tbl_user
       const userResponse = await fetch('http://localhost:8081/updateuser', {
@@ -100,17 +144,23 @@ function Profile({ onRefreshUserData }) {
         const profileDataResult = await profileResponse.json();
         
         if (profileDataResult.success) {
+          // Clear password fields after successful save
+          setPasswordData({
+            newPassword: '',
+            confirmPassword: ''
+          });
+          
           alert('Profile changes saved successfully!');
 
           if (onRefreshUserData) {
-          // Fetch the updated user data
+            // Fetch the updated user data
             const updatedResponse = await fetch(`http://localhost:8081/getuser/${userEmail}`);
             const updatedData = await updatedResponse.json();
           
             if (updatedData.success) {
               onRefreshUserData(updatedData.user); // Update parent state
+            }
           }
-        }
           
           fetchUserData();
         } else {
@@ -134,6 +184,11 @@ function Profile({ onRefreshUserData }) {
       <div className="profile-header">
         <h3>Profile Settings</h3>
         <p className="profile-subtitle">Manage your account information</p>
+      </div>
+
+      <div className="form-group">
+        <p className="field-description">Your unique user identifier</p>
+        <label htmlFor="userId">User ID: {userId || 'Loading...'}</label>
       </div>
 
       <div className="profile-form">
@@ -183,6 +238,37 @@ function Profile({ onRefreshUserData }) {
             onChange={handleChange}
             placeholder="Enter your address"
           />
+        </div>
+
+        {/* Change Password Section */}
+        <div className="password-section">
+          <h4>Change Password</h4>
+          <div className="form-group">
+            <label htmlFor="newPassword">New Password</label>
+            <input
+              type="password"
+              id="newPassword"
+              name="newPassword"
+              value={passwordData.newPassword}
+              onChange={handlePasswordChange}
+              placeholder="Enter new password"
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="confirmPassword">Confirm Password</label>
+            <input
+              type="password"
+              id="confirmPassword"
+              name="confirmPassword"
+              value={passwordData.confirmPassword}
+              onChange={handlePasswordChange}
+              placeholder="Confirm new password"
+            />
+          </div>
+          {passwordData.newPassword && passwordData.confirmPassword && passwordData.newPassword !== passwordData.confirmPassword && (
+            <p className="error-message">Passwords do not match!</p>
+          )}
         </div>
 
         <button className="btn btn-save" onClick={handleSave}>
