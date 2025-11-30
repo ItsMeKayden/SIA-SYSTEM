@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import '../styles/Profile.css';
+import { showSuccessToast, showErrorToast } from '../utils/toastUtils';
 
 function Profile({ onRefreshUserData }) {
   const [profileData, setProfileData] = useState({
@@ -18,7 +19,11 @@ function Profile({ onRefreshUserData }) {
 
   // Get the logged-in user's email from localStorage
   const getLoggedInUserEmail = () => {
-    return localStorage.getItem('userEmail') || '';
+    const userEmail = localStorage.getItem('userEmail');
+    if (!userEmail) {
+      console.error('No user email found in localStorage');
+    }
+    return userEmail || '';
   };
 
   // Fetch user data on component mount
@@ -28,25 +33,33 @@ function Profile({ onRefreshUserData }) {
 
   const fetchUserData = async () => {
     try {
-      const userEmail = getLoggedInUserEmail();
+      let userEmail = getLoggedInUserEmail();
+      const userID = localStorage.getItem('userID');
+
+      // If no email in localStorage, we can try using userID as fallback
+      // But for now, just wait for a valid email
       if (!userEmail) {
-        console.error('No user email found');
+        console.error('No user email found in localStorage');
         setLoading(false);
         return;
       }
 
       // GET DATA FROM tbl_user
-      const userResponse = await fetch(`http://localhost:8081/getuser/${userEmail}`);
+      const userResponse = await fetch(
+        `http://localhost:8081/getuser/${userEmail}`
+      );
       const userData = await userResponse.json();
-      
+
       if (userData.success) {
         // Store userId for later use
         setUserId(userData.user.fld_userID);
-        
+
         // GET ADDRESS FROM tbl_profiles using the userId
-        const profileResponse = await fetch(`http://localhost:8081/getprofile/${userData.user.fld_userID}`);
+        const profileResponse = await fetch(
+          `http://localhost:8081/getprofile/${userData.user.fld_userID}`
+        );
         const profileData = await profileResponse.json();
-        
+
         setProfileData({
           fullName: userData.user.fld_username || '',
           email: userData.user.fld_email || '',
@@ -61,6 +74,26 @@ function Profile({ onRefreshUserData }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validatePhoneNumber = (phone) => {
+    if (!phone.trim()) return true; // Optional field
+    const digitsOnly = phone.replace(/\D/g, '');
+    return digitsOnly.length === 11; // Exactly 11 digits
+  };
+
+  const validateFullName = (name) => {
+    return name.trim().length >= 2;
+  };
+
+  const validateAddress = (address) => {
+    if (!address.trim()) return true; // Optional
+    return address.trim().length >= 5;
   };
 
   const handleChange = (e) => {
@@ -80,6 +113,39 @@ function Profile({ onRefreshUserData }) {
   };
 
   const handleSave = async () => {
+    // Full Name validation
+    if (!profileData.fullName.trim()) {
+      showErrorToast('Full name is required');
+      return;
+    }
+
+    if (!validateFullName(profileData.fullName)) {
+      showErrorToast('Full name must be at least 2 characters');
+      return;
+    }
+
+    // Email validation
+    if (!profileData.email.trim()) {
+      showErrorToast('Email is required');
+      return;
+    }
+
+    if (!validateEmail(profileData.email)) {
+      showErrorToast('Please enter a valid email address');
+      return;
+    }
+
+    // Phone number validation
+    if (profileData.phone && !validatePhoneNumber(profileData.phone)) {
+      showErrorToast('Phone number must be exactly 11 digits');
+      return;
+    }
+
+    // Address validation
+    if (!validateAddress(profileData.address)) {
+      showErrorToast('Address must be at least 5 characters');
+      return;
+    }
     try {
       const userEmail = getLoggedInUserEmail();
       
@@ -150,27 +216,30 @@ function Profile({ onRefreshUserData }) {
         },
         body: JSON.stringify({
           email: userEmail,
-          updates: profileData
-        })
+          updates: profileData,
+        }),
       });
-      
+
       const userData = await userResponse.json();
-      
+
       if (userData.success) {
         // FOR UPDATING tbl_profiles using userId
-        const profileResponse = await fetch('http://localhost:8081/updateprofile', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            userId: userId,
-            address: profileData.address
-          })
-        });
-        
+        const profileResponse = await fetch(
+          'http://localhost:8081/updateprofile',
+          {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              userId: userId,
+              address: profileData.address,
+            }),
+          }
+        );
+
         const profileDataResult = await profileResponse.json();
-        
+
         if (profileDataResult.success) {
           // Clear password fields after successful save
           setPasswordData({
@@ -193,14 +262,17 @@ function Profile({ onRefreshUserData }) {
           
           fetchUserData();
         } else {
-          alert('User data saved but profile address update failed: ' + profileDataResult.error);
+          showErrorToast(
+            'User data saved but profile address update failed: ' +
+              profileDataResult.error
+          );
         }
       } else {
-        alert('Failed to save changes: ' + userData.error);
+        showErrorToast('Failed to save changes: ' + userData.error);
       }
     } catch (error) {
       console.error('Error saving profile:', error);
-      alert('Error saving profile changes');
+      showErrorToast('Error saving profile changes');
     }
   };
 

@@ -94,8 +94,11 @@
 }
 
 .admin-table td:nth-child(5) {
-  max-width: 200px;
-  white-space: pre-wrap;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  word-wrap: normal;
 }
 
 .admin-table tbody tr:hover {

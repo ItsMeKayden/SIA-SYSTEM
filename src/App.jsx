@@ -3,6 +3,7 @@ import Login from './components/Login';
 import Register from './components/Register';
 import Dashboard from './components/Dashboard';
 import AdminDashboard from './components/AdminDashboard';
+import { Toast } from './components/Toast';
 
 function App() {
   const [currentPage, setCurrentPage] = useState('login');
@@ -37,6 +38,7 @@ function App() {
 
   return (
     <>
+      <Toast />
       {currentPage === 'login' ? (
         <Login
           onSwitchToRegister={handleSwitchToRegister}
@@ -45,6 +47,7 @@ function App() {
       ) : currentPage === 'register' ? (
         <Register onSwitchToLogin={handleSwitchToLogin} />
       ) : currentPage === 'admin' ? (
+<<<<<<< HEAD
         <AdminDashboard 
           userData={userData}
           onLogout={handleLogout}
@@ -56,6 +59,11 @@ function App() {
           onLogout={handleLogout}
           onRefreshUserData={refreshUserData}
         />
+=======
+        <AdminDashboard userData={userData} onLogout={handleLogout} />
+      ) : (
+        <Dashboard userData={userData} onLogout={handleLogout} />
+>>>>>>> ed41528ff563c688c4c47f299dad5cd31e532bad
       )}
     </>
   );

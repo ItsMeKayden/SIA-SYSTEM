@@ -3,6 +3,7 @@ import '../styles/Orders.css';
 
 function Orders() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [filteredTerm, setFilteredTerm] = useState('');
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userID, setUserID] = useState(null);
@@ -48,10 +49,20 @@ function Orders() {
         order.fld_orderID
           .toString()
           .toLowerCase()
-          .includes(searchTerm.toLowerCase())) ||
+          .includes(filteredTerm.toLowerCase())) ||
       (order.fld_items &&
-        order.fld_items.toLowerCase().includes(searchTerm.toLowerCase()))
+        order.fld_items.toLowerCase().includes(filteredTerm.toLowerCase()))
   );
+
+  const handleSearch = () => {
+    setFilteredTerm(searchTerm);
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
 
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
@@ -93,8 +104,12 @@ function Orders() {
           placeholder="Search orders by ID or items..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
+          onKeyPress={handleKeyPress}
           className="search-input"
         />
+        <button onClick={handleSearch} className="search-btn">
+          🔍 Search
+        </button>
       </div>
 
       <div className="table-wrapper">
