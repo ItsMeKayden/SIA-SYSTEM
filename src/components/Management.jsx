@@ -74,7 +74,7 @@ function Management() {
       });
       const result = await response.json();
       if (result.success) {
-        setAccounts(accounts.filter((account) => account.fld_id !== accountId));
+        setAccounts(accounts.filter((account) => account.fld_staffID !== accountId));
         showSuccessToast('Staff deleted successfully');
       } else {
         showErrorToast('Failed to delete staff: ' + result.error);
@@ -109,14 +109,14 @@ function Management() {
     // Update locally first for immediate UI feedback
     setAccounts(
       accounts.map((account) =>
-        account.fld_id === accountId 
+        account.fld_staffID === accountId 
           ? { ...account, fld_role: newRole } 
           : account
       )
     );
 
     // Update in database
-    const account = accounts.find((a) => a.fld_id === accountId);
+    const account = accounts.find((a) => a.fld_staffID === accountId);
     if (account) {
       fetch(`http://localhost:8081/staff/${accountId}`, {
         method: 'PUT',
@@ -252,7 +252,7 @@ function Management() {
           </thead>
           <tbody>
             {filteredAccounts.map((account) => (
-              <tr key={account.fld_id}>
+              <tr key={account.fld_staffID}>
                 <td className="name-cell">{account.fld_name}</td>
                 <td>{account.fld_email}</td>
                 <td>
@@ -260,19 +260,13 @@ function Management() {
                     className="role-select"
                     value={account.fld_role}
                     onChange={(e) =>
-                      handleChangeRole(account.fld_id, e.target.value)
+                      handleChangeRole(account.fld_staffID, e.target.value)
                     }
                   >
                     <option value="">Select a Role</option>
-                    {services && services.length > 0 ? (
-                      services.map((service) => (
-                        <option key={service.fld_serviceID} value={service.fld_serviceName}>
-                          {service.fld_serviceName}
-                        </option>
-                      ))
-                    ) : (
-                      <option disabled>No services available</option>
-                    )}
+                    <option value="Wash">Wash</option>
+                    <option value="Fold">Fold</option>
+                    <option value="Iron">Iron</option>
                   </select>
                 </td>
                 <td className="actions-cell">
@@ -285,7 +279,7 @@ function Management() {
                   </button>
                   <button
                     className="action-btn delete-btn"
-                    onClick={() => handleDeleteAccount(account.fld_id)}
+                    onClick={() => handleDeleteAccount(account.fld_staffID)}
                     title="Delete"
                   >
                     🗑️
@@ -410,15 +404,9 @@ function Management() {
                   required
                 >
                   <option value="">Select a Role</option>
-                  {services && services.length > 0 ? (
-                    services.map((service) => (
-                      <option key={service.fld_serviceID} value={service.fld_serviceName}>
-                        {service.fld_serviceName}
-                      </option>
-                    ))
-                  ) : (
-                    <option disabled>No services available</option>
-                  )}
+                  <option value="Wash">Wash</option>
+                  <option value="Fold">Fold</option>
+                  <option value="Iron">Iron</option>
                 </select>
               </div>
 

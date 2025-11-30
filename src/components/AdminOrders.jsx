@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 import '../styles/AdminOrders.css';
-import { showSuccessToast, showErrorToast } from '../utils/toastUtils';
+import {
+  showSuccessToast,
+  showErrorToast,
+  showWarningToast,
+} from '../utils/toastUtils';
 
 function AdminOrders() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -8,8 +12,12 @@ function AdminOrders() {
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [adminID, setAdminID] = useState(null);
+  const [showHiddenOrdersModal, setShowHiddenOrdersModal] = useState(false);
+  const [hiddenOrdersFilter, setHiddenOrdersFilter] = useState('all');
+  const [hiddenOrdersSearch, setHiddenOrdersSearch] = useState('');
 
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [completionConfirm, setCompletionConfirm] = useState(null);
   const [viewOrder, setViewOrder] = useState(null);
   const [editOrder, setEditOrder] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -65,6 +73,12 @@ function AdminOrders() {
     }
   };
 
+  // Get today's date in YYYY-MM-DD format for date picker min
+  const getTodayDate = () => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  };
+
   const fetchServices = async () => {
     try {
       console.log('Fetching services...');
@@ -80,9 +94,106 @@ function AdminOrders() {
     }
   };
 
-  const ordersData = orders;
+  // Helper function to check if order is older than 1 day
+  const isOrderOlderThan1Day = (orderDate) => {
+    const now = new Date();
+    const order = new Date(orderDate);
+    const diffTime = Math.abs(now - order);
+    const diffDays = diffTime / (1000 * 60 * 60 * 24);
+    return diffDays > 1;
+  };
+
+  // Get hidden completed orders (older than 1 day)
+  const hiddenCompletedOrders = orders.filter(
+    (order) =>
+      order.fld_orderStatus === 'Completed' &&
+      isOrderOlderThan1Day(order.fld_orderDate)
+  );
+
+  // Filter hidden orders based on selected filter
+  const getFilteredHiddenOrders = () => {
+    const now = new Date();
+    return hiddenCompletedOrders.filter((order) => {
+      const orderDate = new Date(order.fld_orderDate);
+      const diffTime = Math.abs(now - orderDate);
+      const diffDays = diffTime / (1000 * 60 * 60 * 24);
+
+      // Apply age filter
+      let passesAgeFilter = true;
+      switch (hiddenOrdersFilter) {
+        case 'last7days':
+          passesAgeFilter = diffDays <= 7;
+          break;
+        case 'last30days':
+          passesAgeFilter = diffDays <= 30;
+          break;
+        case 'last90days':
+          passesAgeFilter = diffDays <= 90;
+          break;
+        case 'older':
+          passesAgeFilter = diffDays > 90;
+          break;
+        default: // 'all'
+          passesAgeFilter = true;
+      }
+
+      if (!passesAgeFilter) return false;
+
+      // Apply search filter
+      const searchLower = hiddenOrdersSearch.toLowerCase();
+      if (searchLower) {
+        const orderID = String(order.fld_orderID).toLowerCase();
+        const customerName = (order.fld_username || '').toLowerCase();
+        const serviceName = (order.fld_serviceName || '').toLowerCase();
+        const items = (order.fld_items || '').toLowerCase();
+
+        return (
+          orderID.includes(searchLower) ||
+          customerName.includes(searchLower) ||
+          serviceName.includes(searchLower) ||
+          items.includes(searchLower)
+        );
+      }
+
+      return true;
+    });
+  };
+
+  const filteredHiddenOrders = getFilteredHiddenOrders();
+
+  // Helper to close modal and reset filters
+  const closeHiddenOrdersModal = () => {
+    setShowHiddenOrdersModal(false);
+    setHiddenOrdersSearch('');
+    setHiddenOrdersFilter('all');
+  };
+
+  const ordersData = orders.filter((order) => {
+    // Hide completed orders older than 1 day by default
+    if (
+      order.fld_orderStatus === 'Completed' &&
+      isOrderOlderThan1Day(order.fld_orderDate)
+    ) {
+      return false; // Always hide by default
+    }
+    return true;
+  });
 
   const handleStatusChange = (orderId, newStatus) => {
+    // If changing to Completed, show confirmation dialog
+    if (newStatus === 'Completed') {
+      setCompletionConfirm({
+        orderId,
+        newStatus,
+      });
+      return;
+    }
+
+    // For other statuses, update directly
+    proceedWithStatusChange(orderId, newStatus);
+  };
+
+  const proceedWithStatusChange = (orderId, newStatus) => {
     // Update locally
     setOrders(
       orders.map((order) =>
@@ -99,7 +210,40 @@ function AdminOrders() {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ status: newStatus }),
-    }).catch((error) => console.error('Failed to update status:', error));
+    })
+      .then(() => {
+        // If status is changed to "Completed", create a report
+        if (newStatus === 'Completed') {
+          createReport(orderId);
+        }
+      })
+      .catch((error) => console.error('Failed to update status:', error));
+  };
+
+  const createReport = async (orderId) => {
+    try {
+      const reportResponse = await fetch('http://localhost:8081/reports', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          adminID: adminID,
+          orderID: orderId,
+        }),
+      });
+      const reportResult = await reportResponse.json();
+      if (reportResult.success) {
+        console.log('Report created successfully for order:', orderId);
+        showSuccessToast('Report generated for completed order');
+      } else {
+        console.error('Report creation failed:', reportResult.error);
+        showWarningToast('Order completed but report generation failed');
+      }
+    } catch (reportError) {
+      console.error('Failed to create report:', reportError);
+      showWarningToast('Order completed but report generation failed');
+    }
   };
 
   const handleViewClick = (order) => {
@@ -111,6 +255,11 @@ function AdminOrders() {
   };
 
   const handleEditClick = (order) => {
+    // Prevent editing of completed orders
+    if (order.fld_orderStatus === 'Completed') {
+      showWarningToast('Completed orders cannot be edited');
+      return;
+    }
     setEditOrder(order.fld_orderID);
     // Convert ISO date to yyyy-MM-dd format for date input
     const dateObject = new Date(order.fld_orderDate);
@@ -212,7 +361,27 @@ function AdminOrders() {
     setEditOrder(null);
   };
 
+  const confirmCompletion = () => {
+    if (completionConfirm) {
+      proceedWithStatusChange(
+        completionConfirm.orderId,
+        completionConfirm.newStatus
+      );
+      setCompletionConfirm(null);
+    }
+  };
+
+  const cancelCompletion = () => {
+    setCompletionConfirm(null);
+  };
+
   const handleDeleteClick = (orderId) => {
+    // Find the order to check its status
+    const order = ordersData.find((o) => o.fld_orderID === orderId);
+    if (order && order.fld_orderStatus === 'Completed') {
+      showWarningToast('Completed orders cannot be deleted');
+      return;
+    }
     setDeleteConfirm(orderId);
   };
 
@@ -246,16 +415,12 @@ function AdminOrders() {
 
   const handleServiceToggle = (serviceId) => {
     setNewOrderForm((prev) => {
-      const isSelected = prev.selectedServices.includes(serviceId);
-      const updatedServices = isSelected
-        ? prev.selectedServices.filter((id) => id !== serviceId)
-        : [...prev.selectedServices, serviceId];
+      // For new orders, only allow single service selection (radio button behavior)
+      const updatedServices = [serviceId];
 
-      // Calculate total price from database services
-      const totalPrice = updatedServices.reduce((sum, id) => {
-        const service = services.find((s) => s.fld_serviceID === id);
-        return sum + (service ? parseFloat(service.fld_servicePrice) : 0);
-      }, 0);
+      // Get price from the selected service
+      const service = services.find((s) => s.fld_serviceID === serviceId);
+      const totalPrice = service ? parseFloat(service.fld_servicePrice) : 0;
 
       return {
         ...prev,
@@ -322,44 +487,73 @@ function AdminOrders() {
   const handleSubmitAddOrder = async (e) => {
     e.preventDefault();
     console.log('Current adminID:', adminID);
-    if (
-      newOrderForm.userID &&
-      newOrderForm.orderDate &&
-      newOrderForm.selectedServices.length > 0 &&
-      newOrderForm.items.trim() !== ''
-    ) {
-      try {
-        const orderData = {
-          userID: parseInt(newOrderForm.userID),
-          serviceID: newOrderForm.selectedServices[0],
-          orderDate: newOrderForm.orderDate,
-          status: newOrderForm.status,
-          amount: newOrderForm.amount.replace('$', ''),
-          adminID: adminID,
-          items: newOrderForm.items,
-        };
-        console.log('Sending order data:', orderData);
 
-        const response = await fetch('http://localhost:8081/orders', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(orderData),
-        });
-        const result = await response.json();
-        if (result.success) {
-          fetchOrders();
-          handleCloseAddForm();
-        } else {
-          showErrorToast('Failed to create order: ' + result.error);
-        }
-      } catch (error) {
-        console.error('Failed to create order:', error);
-        showErrorToast('Failed to create order');
+    // Validate all required fields
+    if (!newOrderForm.userID) {
+      showErrorToast('Please select a customer');
+      return;
+    }
+    if (!newOrderForm.orderDate) {
+      showErrorToast('Please select an order date');
+      return;
+    }
+    if (newOrderForm.selectedServices.length === 0) {
+      showErrorToast('Please select a service');
+      return;
+    }
+    if (newOrderForm.items.trim() === '') {
+      showErrorToast('Please enter items');
+      return;
+    }
+
+    // Validate date is not in the past
+    const selectedDate = new Date(newOrderForm.orderDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (selectedDate < today) {
+      showErrorToast('Order date cannot be in the past');
+      return;
+    }
+
+    // Validate amount is greater than 0
+    const amount = parseFloat(newOrderForm.amount.replace('$', ''));
+    if (isNaN(amount) || amount <= 0) {
+      showErrorToast('Amount must be greater than 0');
+      return;
+    }
+
+    try {
+      const orderData = {
+        userID: parseInt(newOrderForm.userID),
+        serviceID: newOrderForm.selectedServices[0],
+        orderDate: newOrderForm.orderDate,
+        status: newOrderForm.status,
+        amount: amount.toString(),
+        adminID: adminID,
+        items: newOrderForm.items,
+      };
+      console.log('Sending order data:', orderData);
+
+      const response = await fetch('http://localhost:8081/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(orderData),
+      });
+      const result = await response.json();
+      if (result.success) {
+        console.log('Order created with ID from response:', result.id);
+        fetchOrders();
+        handleCloseAddForm();
+        showSuccessToast('Order created successfully');
+      } else {
+        showErrorToast('Failed to create order: ' + result.error);
       }
-    } else {
-      showErrorToast('Please fill in all required fields including Items');
+    } catch (error) {
+      console.error('Failed to create order:', error);
+      showErrorToast('Failed to create order');
     }
   };
 
@@ -374,7 +568,17 @@ function AdminOrders() {
         order.fld_userID
           .toString()
           .toLowerCase()
-          .includes(searchTerm.toLowerCase()))
+          .includes(searchTerm.toLowerCase())) ||
+      (order.fld_username &&
+        order.fld_username.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  // Separate completed and pending orders
+  const pendingOrders = filteredOrders.filter(
+    (order) => order.fld_orderStatus !== 'Completed'
+  );
+  const completedOrders = filteredOrders.filter(
+    (order) => order.fld_orderStatus === 'Completed'
   );
 
   const getStatusColor = (status) => {
@@ -405,92 +609,197 @@ function AdminOrders() {
       </div>
 
       <div className="search-box">
-        <input
-          type="text"
-          placeholder="Search orders by ID or customer..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="search-input"
-        />
+        <div
+          style={{
+            display: 'flex',
+            gap: '15px',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+          }}
+        >
+          <input
+            type="text"
+            placeholder="Search orders by ID or customer..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="search-input"
+            style={{ flex: 1, maxWidth: '400px' }}
+          />
+          {hiddenCompletedOrders.length > 0 && (
+            <button
+              onClick={() => setShowHiddenOrdersModal(true)}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#f59e0b',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '13px',
+                fontWeight: '600',
+                whiteSpace: 'nowrap',
+                transition: 'background-color 0.2s ease',
+              }}
+              onMouseEnter={(e) => (e.target.style.backgroundColor = '#d97706')}
+              onMouseLeave={(e) => (e.target.style.backgroundColor = '#f59e0b')}
+            >
+              👁️ View Past Orders ({hiddenCompletedOrders.length})
+            </button>
+          )}
+        </div>
       </div>
 
-      <div className="table-wrapper">
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>Order ID</th>
-              <th>Customer</th>
-              <th>Date</th>
-              <th>Service</th>
-              <th>Items</th>
-              <th>Status</th>
-              <th>Total</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredOrders && filteredOrders.length > 0 ? (
-              filteredOrders.map((order) => (
-                <tr key={order.fld_orderID}>
-                  <td className="order-id-cell">{order.fld_orderID}</td>
-                  <td>{order.fld_username || '-'}</td>
-                  <td>{new Date(order.fld_orderDate).toLocaleDateString()}</td>
-                  <td>{order.fld_serviceName || '-'}</td>
-                  <td>{order.fld_items || '-'}</td>
-                  <td>
-                    <select
-                      className="status-select"
-                      value={order.fld_orderStatus}
-                      onChange={(e) =>
-                        handleStatusChange(order.fld_orderID, e.target.value)
-                      }
-                    >
-                      <option value="Pending">Pending</option>
-                      <option value="Processing">Processing</option>
-                      <option value="Ready">Ready</option>
-                      <option value="Completed">Completed</option>
-                    </select>
-                  </td>
-                  <td className="total-cell">
-                    ${parseFloat(order.fld_amount).toFixed(2)}
-                  </td>
-                  <td className="actions-cell">
-                    <button
-                      className="action-btn view-btn"
-                      onClick={() => handleViewClick(order)}
-                      title="View"
-                    >
-                      👁️
-                    </button>
-                    <button
-                      className="action-btn edit-btn"
-                      onClick={() => handleEditClick(order)}
-                      title="Edit"
-                    >
-                      ✏️
-                    </button>
-                    <button
-                      className="action-btn delete-btn"
-                      onClick={() => handleDeleteClick(order.fld_orderID)}
-                    >
-                      🗑️
-                    </button>
-                  </td>
+      {loading ? (
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <p>Loading orders...</p>
+        </div>
+      ) : filteredOrders.length === 0 ? (
+        <div className="no-results-container">
+          <p className="no-results-text">No results found</p>
+          <p className="no-results-subtext">
+            {searchTerm
+              ? `No orders match your search: "${searchTerm}"`
+              : 'No orders available'}
+          </p>
+        </div>
+      ) : (
+        <div className="table-wrapper">
+          {/* Active Orders Section */}
+          <div className="orders-section active-orders">
+            <h4 className="section-title">Active Orders</h4>
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Customer</th>
+                  <th>Date</th>
+                  <th>Service</th>
+                  <th>Items</th>
+                  <th>Status</th>
+                  <th>Total</th>
+                  <th>Actions</th>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td
-                  colSpan="8"
-                  style={{ textAlign: 'center', padding: '20px' }}
-                >
-                  No orders available
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+              </thead>
+              <tbody>
+                {pendingOrders && pendingOrders.length > 0 ? (
+                  pendingOrders.map((order) => (
+                    <tr key={order.fld_orderID}>
+                      <td className="order-id-cell">{order.fld_orderID}</td>
+                      <td>{order.fld_username || '-'}</td>
+                      <td>
+                        {new Date(order.fld_orderDate).toLocaleDateString()}
+                      </td>
+                      <td>{order.fld_serviceName || '-'}</td>
+                      <td>{order.fld_items || '-'}</td>
+                      <td>
+                        <select
+                          className="status-select"
+                          value={order.fld_orderStatus}
+                          onChange={(e) =>
+                            handleStatusChange(
+                              order.fld_orderID,
+                              e.target.value
+                            )
+                          }
+                        >
+                          <option value="Pending">Pending</option>
+                          <option value="Processing">Processing</option>
+                          <option value="Ready">Ready</option>
+                          <option value="Completed">Completed</option>
+                        </select>
+                      </td>
+                      <td className="total-cell">
+                        ${parseFloat(order.fld_amount).toFixed(2)}
+                      </td>
+                      <td className="actions-cell">
+                        <button
+                          className="action-btn view-btn"
+                          onClick={() => handleViewClick(order)}
+                          title="View"
+                        >
+                          👁️
+                        </button>
+                        <button
+                          className="action-btn edit-btn"
+                          onClick={() => handleEditClick(order)}
+                          title="Edit"
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          className="action-btn delete-btn"
+                          onClick={() => handleDeleteClick(order.fld_orderID)}
+                        >
+                          🗑️
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td
+                      colSpan="8"
+                      style={{ textAlign: 'center', padding: '20px' }}
+                    >
+                      No active orders
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Completed Orders Section */}
+          {completedOrders && completedOrders.length > 0 && (
+            <div className="orders-section completed-orders">
+              <h4 className="section-title">Completed Orders</h4>
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Order ID</th>
+                    <th>Customer</th>
+                    <th>Date</th>
+                    <th>Service</th>
+                    <th>Items</th>
+                    <th>Status</th>
+                    <th>Total</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {completedOrders.map((order) => (
+                    <tr key={order.fld_orderID} className="completed-row">
+                      <td className="order-id-cell">{order.fld_orderID}</td>
+                      <td>{order.fld_username || '-'}</td>
+                      <td>
+                        {new Date(order.fld_orderDate).toLocaleDateString()}
+                      </td>
+                      <td>{order.fld_serviceName || '-'}</td>
+                      <td>{order.fld_items || '-'}</td>
+                      <td>
+                        <span className="completed-status">Completed</span>
+                      </td>
+                      <td className="total-cell">
+                        ${parseFloat(order.fld_amount).toFixed(2)}
+                      </td>
+                      <td className="actions-cell">
+                        <button
+                          className="action-btn view-btn"
+                          onClick={() => handleViewClick(order)}
+                          title="View"
+                        >
+                          👁️
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
       {deleteConfirm && (
         <div className="confirmation-modal">
@@ -509,6 +818,37 @@ function AdminOrders() {
                 onClick={() => confirmDelete(deleteConfirm)}
               >
                 Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {completionConfirm && (
+        <div className="confirmation-modal">
+          <div className="confirmation-content">
+            <h3>Complete Order</h3>
+            <p>
+              Are you sure you want to mark this order as{' '}
+              <strong>Completed</strong>?
+            </p>
+            <p style={{ fontSize: '14px', color: '#666', marginTop: '10px' }}>
+              Once completed:
+            </p>
+            <ul style={{ fontSize: '14px', color: '#666', marginLeft: '20px' }}>
+              <li>The order cannot be edited</li>
+              <li>The order cannot be deleted</li>
+              <li>A report will be generated automatically</li>
+            </ul>
+            <div className="confirmation-actions">
+              <button className="btn-cancel" onClick={cancelCompletion}>
+                Cancel
+              </button>
+              <button
+                className="btn-confirm btn-success"
+                onClick={confirmCompletion}
+              >
+                Complete Order
               </button>
             </div>
           </div>
@@ -791,6 +1131,7 @@ function AdminOrders() {
                   name="orderDate"
                   value={newOrderForm.orderDate}
                   onChange={handleAddFormChange}
+                  min={getTodayDate()}
                   required
                 />
               </div>
@@ -805,7 +1146,8 @@ function AdminOrders() {
                         className="service-checkbox"
                       >
                         <input
-                          type="checkbox"
+                          type="radio"
+                          name="addService"
                           checked={newOrderForm.selectedServices.includes(
                             service.fld_serviceID
                           )}
@@ -882,6 +1224,231 @@ function AdminOrders() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Past Orders Modal */}
+      {showHiddenOrdersModal && (
+        <div className="modal-overlay" onClick={() => closeHiddenOrdersModal()}>
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '900px' }}
+          >
+            <div className="modal-header">
+              <h3>Past Completed Orders (Older than 1 Day)</h3>
+              <button
+                className="close-btn"
+                onClick={() => closeHiddenOrdersModal()}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Filter Buttons */}
+            <div
+              style={{
+                padding: '15px 20px',
+                borderBottom: '1px solid #e0e0e0',
+              }}
+            >
+              {/* Search Bar */}
+              <div style={{ marginBottom: '15px' }}>
+                <input
+                  type="text"
+                  placeholder="🔍 Search by Order ID, Customer, Service, or Items..."
+                  value={hiddenOrdersSearch}
+                  onChange={(e) => setHiddenOrdersSearch(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    fontSize: '13px',
+                    fontFamily: 'inherit',
+                  }}
+                />
+              </div>
+
+              <div
+                style={{
+                  marginBottom: '10px',
+                  fontSize: '12px',
+                  color: '#999',
+                  fontWeight: '600',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Filter by Age:
+              </div>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => setHiddenOrdersFilter('all')}
+                  style={{
+                    padding: '6px 12px',
+                    backgroundColor:
+                      hiddenOrdersFilter === 'all' ? '#667eea' : '#f0f0f0',
+                    color: hiddenOrdersFilter === 'all' ? 'white' : '#333',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                  }}
+                >
+                  All Orders
+                </button>
+                <button
+                  onClick={() => setHiddenOrdersFilter('last7days')}
+                  style={{
+                    padding: '6px 12px',
+                    backgroundColor:
+                      hiddenOrdersFilter === 'last7days'
+                        ? '#667eea'
+                        : '#f0f0f0',
+                    color:
+                      hiddenOrdersFilter === 'last7days' ? 'white' : '#333',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                  }}
+                >
+                  Last 7 Days
+                </button>
+                <button
+                  onClick={() => setHiddenOrdersFilter('last30days')}
+                  style={{
+                    padding: '6px 12px',
+                    backgroundColor:
+                      hiddenOrdersFilter === 'last30days'
+                        ? '#667eea'
+                        : '#f0f0f0',
+                    color:
+                      hiddenOrdersFilter === 'last30days' ? 'white' : '#333',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                  }}
+                >
+                  Last 30 Days
+                </button>
+                <button
+                  onClick={() => setHiddenOrdersFilter('last90days')}
+                  style={{
+                    padding: '6px 12px',
+                    backgroundColor:
+                      hiddenOrdersFilter === 'last90days'
+                        ? '#667eea'
+                        : '#f0f0f0',
+                    color:
+                      hiddenOrdersFilter === 'last90days' ? 'white' : '#333',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                  }}
+                >
+                  Last 90 Days
+                </button>
+                <button
+                  onClick={() => setHiddenOrdersFilter('older')}
+                  style={{
+                    padding: '6px 12px',
+                    backgroundColor:
+                      hiddenOrdersFilter === 'older' ? '#667eea' : '#f0f0f0',
+                    color: hiddenOrdersFilter === 'older' ? 'white' : '#333',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                  }}
+                >
+                  Older than 90 Days
+                </button>
+              </div>
+            </div>
+
+            <div
+              style={{ padding: '20px', maxHeight: '600px', overflowY: 'auto' }}
+            >
+              {filteredHiddenOrders.length > 0 ? (
+                <table className="admin-table" style={{ width: '100%' }}>
+                  <thead>
+                    <tr>
+                      <th>Order ID</th>
+                      <th>Customer</th>
+                      <th>Date</th>
+                      <th>Service</th>
+                      <th>Items</th>
+                      <th>Total</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredHiddenOrders.map((order) => (
+                      <tr key={order.fld_orderID} className="completed-row">
+                        <td className="order-id-cell">{order.fld_orderID}</td>
+                        <td>{order.fld_username || '-'}</td>
+                        <td>
+                          {new Date(order.fld_orderDate).toLocaleDateString()}
+                        </td>
+                        <td>{order.fld_serviceName || '-'}</td>
+                        <td>{order.fld_items || '-'}</td>
+                        <td className="total-cell">
+                          ${parseFloat(order.fld_amount).toFixed(2)}
+                        </td>
+                        <td className="actions-cell">
+                          <button
+                            className="action-btn view-btn"
+                            onClick={() => {
+                              handleViewClick(order);
+                              closeHiddenOrdersModal();
+                            }}
+                            title="View"
+                          >
+                            👁️
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p style={{ textAlign: 'center', color: '#999' }}>
+                  No orders found in this filter
+                </p>
+              )}
+            </div>
+
+            <div
+              style={{
+                padding: '20px',
+                textAlign: 'right',
+                borderTop: '1px solid #e0e0e0',
+              }}
+            >
+              <button
+                onClick={() => closeHiddenOrdersModal()}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: '#667eea',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                }}
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

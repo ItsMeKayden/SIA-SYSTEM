@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import '../styles/Register.css';
+import { showSuccessToast, showErrorToast } from '../utils/toastUtils';
 
 function Register({ onSwitchToLogin }) {
   const [isAdminMode, setIsAdminMode] = useState(false);
@@ -116,7 +117,6 @@ function Register({ onSwitchToLogin }) {
     }
 
     setLoading(true);
-    setMessage('');
 
     try {
       const response = await fetch('http://localhost:8081/signupuser', {
@@ -130,18 +130,14 @@ function Register({ onSwitchToLogin }) {
           email: formData.email,
           contact: formData.phoneNumber,
           address: formData.address,
+          isAdmin: isAdminMode,
         }),
       });
 
       const result = await response.json();
 
       if (result.success) {
-        // If server returns the new user's id, capture it and show to user / use later
-        if (result.userId) {
-          setMessage(`Success! User registered successfully.`);
-        } else {
-          setMessage('Success! User registered to database.');
-        }
+        showSuccessToast('User registered successfully!');
         setFormData({
           fullName: '',
           email: '',
@@ -151,10 +147,10 @@ function Register({ onSwitchToLogin }) {
           confirmPassword: '',
         });
       } else {
-        setError(result.error || 'An error occurred during registration');
+        showErrorToast(result.error || 'An error occurred during registration');
       }
     } catch (error) {
-      setMessage('Cannot connect to server. Make sure backend is running.');
+      showErrorToast('Cannot connect to server. Make sure backend is running.');
     } finally {
       setLoading(false);
     }
