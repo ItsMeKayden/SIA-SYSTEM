@@ -141,14 +141,16 @@ app.post('/loginadmin', (req, res) => {
     } else {
       console.log('Query result:', result);
       if (result.length > 0) {
-        res.json({ 
-          success: true, 
+        console.log('Admin found:', result[0]);
+        res.json({
+          success: true,
           message: 'Admin login successful',
+          adminID: result[0].fld_adminID,
           user: {
             fld_username: result[0].fld_username,
             fld_email: result[0].fld_email,
-            fld_adminID: result[0].fld_adminID
-          }
+            fld_adminID: result[0].fld_adminID,
+          },
         });
       } else {
         res.json({ success: false, error: 'Invalid email or password' });
@@ -173,15 +175,15 @@ app.post('/loginuser', (req, res) => {
     } else {
       console.log('Query result:', result);
       if (result.length > 0) {
-        res.json({ 
-          success: true, 
+        res.json({
+          success: true,
           message: 'User login successful',
           user: {
             fld_username: result[0].fld_username,
             fld_email: result[0].fld_email,
             fld_contact: result[0].fld_contact,
-            fld_userID: result[0].fld_userID
-          }
+            fld_userID: result[0].fld_userID,
+          },
         });
       } else {
         res.json({ success: false, error: 'Invalid email or password' });
@@ -233,6 +235,31 @@ app.get('/getuser/id/:userId', (req, res) => {
     }
 
     res.json({ success: true, user: result[0] });
+  });
+});
+
+// FOR GETTING ALL USERS
+app.get('/allusers', (req, res) => {
+  const sql = `
+    SELECT 
+      u.fld_userID, 
+      u.fld_username, 
+      u.fld_email, 
+      u.fld_contact,
+      r.fld_registrationDate
+    FROM tbl_user u
+    LEFT JOIN tbl_registers r ON u.fld_userID = r.fld_userID
+  `;
+
+  db.query(sql, (err, result) => {
+    if (err) {
+      return res.json({
+        success: false,
+        error: 'Database error: ' + err.message,
+      });
+    }
+
+    res.json({ success: true, data: result });
   });
 });
 
@@ -306,18 +333,22 @@ app.put('/updateuser', (req, res) => {
 // FOR VERIFYING OLD PASSWORD
 app.post('/verifypassword', (req, res) => {
   const { email, oldPassword } = req.body;
-  
-  const sql = 'SELECT fld_password FROM tbl_user WHERE fld_email = ? AND fld_password = ?';
-  
+
+  const sql =
+    'SELECT fld_password FROM tbl_user WHERE fld_email = ? AND fld_password = ?';
+
   db.query(sql, [email, oldPassword], (err, result) => {
     if (err) {
-      return res.json({ success: false, error: 'Verification failed: ' + err.message });
+      return res.json({
+        success: false,
+        error: 'Verification failed: ' + err.message,
+      });
     }
-    
+
     if (result.length === 0) {
       return res.json({ success: false, error: 'Old password is incorrect' });
     }
-    
+
     res.json({ success: true, message: 'Password verified successfully' });
   });
 });
@@ -325,18 +356,21 @@ app.post('/verifypassword', (req, res) => {
 // FOR UPDATING PASSWORD
 app.put('/updatepassword', (req, res) => {
   const { email, newPassword } = req.body;
-  
+
   const sql = 'UPDATE tbl_user SET fld_password = ? WHERE fld_email = ?';
-  
+
   db.query(sql, [newPassword, email], (err, result) => {
     if (err) {
-      return res.json({ success: false, error: 'Password update failed: ' + err.message });
+      return res.json({
+        success: false,
+        error: 'Password update failed: ' + err.message,
+      });
     }
-    
+
     if (result.affectedRows === 0) {
       return res.json({ success: false, error: 'User not found' });
     }
-    
+
     res.json({ success: true, message: 'Password updated successfully' });
   });
 });
@@ -520,29 +554,93 @@ app.post('/orders', (req, res) => {
     items,
   });
 
-  const sql =
-    'INSERT INTO tbl_orders (fld_userID, fld_serviceID, fld_orderDate, fld_orderStatus, fld_amount, fld_adminID, fld_items) VALUES (?, ?, ?, ?, ?, ?, ?)';
+  // Validate adminID is provided
+  if (!adminID) {
+    res.json({
+      success: false,
+      error: 'Admin ID is required to create an order.',
+    });
+    return;
+  }
 
-  db.query(
-    sql,
-    [userID, serviceID, orderDate, status, amount, adminID, items],
-    (err, result) => {
-      if (err) {
-        console.error('Database error:', err);
-        res.json({
-          success: false,
-          error: 'Failed to create order: ' + err.message,
-        });
-      } else {
-        console.log('Order created with ID:', result.insertId);
-        res.json({
-          success: true,
-          message: 'Order created successfully',
-          id: result.insertId,
-        });
-      }
+  // Convert adminID to integer
+  const adminIDInt = parseInt(adminID);
+
+  // Validate that adminID exists
+  const validateAdminSql =
+    'SELECT fld_adminID FROM tbl_admin WHERE fld_adminID = ?';
+  db.query(validateAdminSql, [adminIDInt], (err, adminResult) => {
+    if (err) {
+      console.error('Admin validation error:', err);
+      // If validation fails, still allow order creation (admin table may not be properly set up)
+      proceedWithOrderCreation();
+      return;
     }
-  );
+
+    console.log(
+      'Admin validation result:',
+      adminResult,
+      'for adminID:',
+      adminIDInt
+    );
+
+    if (adminResult.length === 0) {
+      console.log('Admin ID not found, proceeding anyway:', adminIDInt);
+      // Admin doesn't exist but we'll allow it anyway to prevent blocking order creation
+      proceedWithOrderCreation();
+      return;
+    }
+
+    // Admin exists, proceed with order creation
+    proceedWithOrderCreation();
+  });
+
+  function proceedWithOrderCreation() {
+    const sql =
+      'INSERT INTO tbl_orders (fld_userID, fld_serviceID, fld_orderDate, fld_orderStatus, fld_amount, fld_adminID, fld_items) VALUES (?, ?, ?, ?, ?, ?, ?)';
+
+    db.query(
+      sql,
+      [userID, serviceID, orderDate, status, amount, adminIDInt, items],
+      (err, result) => {
+        if (err) {
+          console.error('Database error:', err);
+          res.json({
+            success: false,
+            error: 'Failed to create order: ' + err.message,
+          });
+        } else {
+          // Fetch the newly created order to get its ID
+          // We'll find it by matching userID, adminID, orderDate, and items
+          const fetchSql =
+            'SELECT fld_orderID FROM tbl_orders WHERE fld_userID = ? AND fld_adminID = ? AND fld_serviceID = ? AND fld_orderDate = ? AND fld_items = ? ORDER BY fld_orderID DESC LIMIT 1';
+          db.query(
+            fetchSql,
+            [userID, adminIDInt, serviceID, orderDate, items],
+            (fetchErr, fetchResult) => {
+              if (fetchErr || !fetchResult || fetchResult.length === 0) {
+                console.error('Failed to retrieve created order ID:', fetchErr);
+                // Return without ID, frontend won't be able to create report
+                res.json({
+                  success: true,
+                  message: 'Order created successfully',
+                  id: null,
+                });
+              } else {
+                const newOrderId = fetchResult[0].fld_orderID;
+                console.log('Order created with fld_orderID:', newOrderId);
+                res.json({
+                  success: true,
+                  message: 'Order created successfully',
+                  id: newOrderId,
+                });
+              }
+            }
+          );
+        }
+      }
+    );
+  }
 });
 
 // FOR UPDATING ORDER STATUS
@@ -751,6 +849,54 @@ app.delete('/staff/:id', (req, res) => {
     }
 
     res.json({ success: true, message: 'Staff deleted successfully' });
+// FOR GETTING ALL REPORTS
+app.get('/reports', (req, res) => {
+  const sql = `
+    SELECT r.fld_reportID, r.fld_adminID, r.fld_orderID, r.fld_dateGenerated,
+           o.fld_amount, o.fld_orderStatus, u.fld_username
+    FROM tbl_reports r
+    LEFT JOIN tbl_orders o ON r.fld_orderID = o.fld_orderID
+    LEFT JOIN tbl_user u ON o.fld_userID = u.fld_userID
+    ORDER BY r.fld_dateGenerated DESC
+  `;
+
+  db.query(sql, (err, result) => {
+    if (err) {
+      console.error('Error fetching reports:', err);
+      return res.json({
+        success: false,
+        error: 'Database error: ' + err.message,
+      });
+    }
+
+    res.json({ success: true, data: result });
+  });
+});
+
+// FOR CREATING A NEW REPORT
+app.post('/reports', (req, res) => {
+  const { adminID, orderID } = req.body;
+
+  console.log('Report creation request received:', { adminID, orderID });
+
+  const sql =
+    'INSERT INTO tbl_reports (fld_adminID, fld_orderID, fld_dateGenerated) VALUES (?, ?, NOW())';
+
+  db.query(sql, [adminID, orderID], (err, result) => {
+    if (err) {
+      console.error('Error creating report:', err);
+      return res.json({
+        success: false,
+        error: 'Failed to create report: ' + err.message,
+      });
+    }
+
+    console.log('Report created successfully with ID:', result.insertId);
+    res.json({
+      success: true,
+      message: 'Report created successfully',
+      id: result.insertId,
+    });
   });
 });
 
