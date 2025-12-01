@@ -103,10 +103,11 @@ function AdminOrders() {
     return diffDays > 1;
   };
 
-  // Get hidden completed orders (older than 1 day)
+  // Get hidden completed and cancelled orders (older than 1 day)
   const hiddenCompletedOrders = orders.filter(
     (order) =>
-      order.fld_orderStatus === 'Completed' &&
+      (order.fld_orderStatus === 'Completed' ||
+        order.fld_orderStatus === 'Cancelled') &&
       isOrderOlderThan1Day(order.fld_orderDate)
   );
 
@@ -169,9 +170,10 @@ function AdminOrders() {
   };
 
   const ordersData = orders.filter((order) => {
-    // Hide completed orders older than 1 day by default
+    // Hide completed and cancelled orders older than 1 day by default
     if (
-      order.fld_orderStatus === 'Completed' &&
+      (order.fld_orderStatus === 'Completed' ||
+        order.fld_orderStatus === 'Cancelled') &&
       isOrderOlderThan1Day(order.fld_orderDate)
     ) {
       return false; // Always hide by default
@@ -180,8 +182,8 @@ function AdminOrders() {
   });
 
   const handleStatusChange = (orderId, newStatus) => {
-    // If changing to Completed, show confirmation dialog
-    if (newStatus === 'Completed') {
+    // If changing to Completed or Cancelled, show confirmation dialog
+    if (newStatus === 'Completed' || newStatus === 'Cancelled') {
       setCompletionConfirm({
         orderId,
         newStatus,
@@ -255,9 +257,16 @@ function AdminOrders() {
   };
 
   const handleEditClick = (order) => {
-    // Prevent editing of completed orders
-    if (order.fld_orderStatus === 'Completed') {
-      showWarningToast('Completed orders cannot be edited');
+    // Prevent editing of completed and cancelled orders
+    if (
+      order.fld_orderStatus === 'Completed' ||
+      order.fld_orderStatus === 'Cancelled'
+    ) {
+      showWarningToast(
+        order.fld_orderStatus === 'Completed'
+          ? 'Completed orders cannot be edited'
+          : 'Cancelled orders cannot be edited'
+      );
       return;
     }
     setEditOrder(order.fld_orderID);
@@ -378,8 +387,16 @@ function AdminOrders() {
   const handleDeleteClick = (orderId) => {
     // Find the order to check its status
     const order = ordersData.find((o) => o.fld_orderID === orderId);
-    if (order && order.fld_orderStatus === 'Completed') {
-      showWarningToast('Completed orders cannot be deleted');
+    if (
+      order &&
+      (order.fld_orderStatus === 'Completed' ||
+        order.fld_orderStatus === 'Cancelled')
+    ) {
+      showWarningToast(
+        order.fld_orderStatus === 'Completed'
+          ? 'Completed orders cannot be deleted'
+          : 'Cancelled orders cannot be deleted'
+      );
       return;
     }
     setDeleteConfirm(orderId);
@@ -573,12 +590,19 @@ function AdminOrders() {
         order.fld_username.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  // Separate completed and pending orders
+  // Separate pending, completed and cancelled orders
   const pendingOrders = filteredOrders.filter(
-    (order) => order.fld_orderStatus !== 'Completed'
+    (order) =>
+      order.fld_orderStatus !== 'Completed' &&
+      order.fld_orderStatus !== 'Cancelled'
   );
   const completedOrders = filteredOrders.filter(
     (order) => order.fld_orderStatus === 'Completed'
+  );
+  const cancelledOrders = filteredOrders.filter(
+    (order) =>
+      order.fld_orderStatus === 'Cancelled' &&
+      !isOrderOlderThan1Day(order.fld_orderDate)
   );
 
   const getStatusColor = (status) => {
@@ -591,6 +615,8 @@ function AdminOrders() {
         return '#2ecc71';
       case 'pending':
         return '#f39c12';
+      case 'cancelled':
+        return '#e74c3c';
       default:
         return '#95a5a6';
     }
@@ -707,6 +733,7 @@ function AdminOrders() {
                           <option value="Processing">Processing</option>
                           <option value="Ready">Ready</option>
                           <option value="Completed">Completed</option>
+                          <option value="Cancelled">Cancelled</option>
                         </select>
                       </td>
                       <td className="total-cell">
@@ -798,6 +825,55 @@ function AdminOrders() {
               </table>
             </div>
           )}
+
+          {/* Cancelled Orders Section */}
+          {cancelledOrders && cancelledOrders.length > 0 && (
+            <div className="orders-section cancelled-orders">
+              <h4 className="section-title">Cancelled Orders</h4>
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Order ID</th>
+                    <th>Customer</th>
+                    <th>Date</th>
+                    <th>Service</th>
+                    <th>Items</th>
+                    <th>Status</th>
+                    <th>Total</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {cancelledOrders.map((order) => (
+                    <tr key={order.fld_orderID} className="cancelled-row">
+                      <td className="order-id-cell">{order.fld_orderID}</td>
+                      <td>{order.fld_username || '-'}</td>
+                      <td>
+                        {new Date(order.fld_orderDate).toLocaleDateString()}
+                      </td>
+                      <td>{order.fld_serviceName || '-'}</td>
+                      <td>{order.fld_items || '-'}</td>
+                      <td>
+                        <span className="cancelled-status">Cancelled</span>
+                      </td>
+                      <td className="total-cell">
+                        ${parseFloat(order.fld_amount).toFixed(2)}
+                      </td>
+                      <td className="actions-cell">
+                        <button
+                          className="action-btn view-btn"
+                          onClick={() => handleViewClick(order)}
+                          title="View"
+                        >
+                          👁️
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
@@ -827,18 +903,25 @@ function AdminOrders() {
       {completionConfirm && (
         <div className="confirmation-modal">
           <div className="confirmation-content">
-            <h3>Complete Order</h3>
+            <h3>
+              {completionConfirm.newStatus === 'Completed'
+                ? 'Complete Order'
+                : 'Cancel Order'}
+            </h3>
             <p>
               Are you sure you want to mark this order as{' '}
-              <strong>Completed</strong>?
+              <strong>{completionConfirm.newStatus}</strong>?
             </p>
             <p style={{ fontSize: '14px', color: '#666', marginTop: '10px' }}>
-              Once completed:
+              Once {completionConfirm.newStatus.toLowerCase()}:
             </p>
             <ul style={{ fontSize: '14px', color: '#666', marginLeft: '20px' }}>
               <li>The order cannot be edited</li>
               <li>The order cannot be deleted</li>
-              <li>A report will be generated automatically</li>
+              {completionConfirm.newStatus === 'Completed' && (
+                <li>A report will be generated automatically</li>
+              )}
+              <li>The order will be archived after 1 day</li>
             </ul>
             <div className="confirmation-actions">
               <button className="btn-cancel" onClick={cancelCompletion}>
@@ -848,7 +931,9 @@ function AdminOrders() {
                 className="btn-confirm btn-success"
                 onClick={confirmCompletion}
               >
-                Complete Order
+                {completionConfirm.newStatus === 'Completed'
+                  ? 'Complete Order'
+                  : 'Cancel Order'}
               </button>
             </div>
           </div>
@@ -1037,6 +1122,7 @@ function AdminOrders() {
                   <option value="Processing">Processing</option>
                   <option value="Ready">Ready</option>
                   <option value="Completed">Completed</option>
+                  <option value="Cancelled">Cancelled</option>
                 </select>
               </div>
 
@@ -1193,6 +1279,7 @@ function AdminOrders() {
                   <option value="Processing">Processing</option>
                   <option value="Ready">Ready</option>
                   <option value="Completed">Completed</option>
+                  <option value="Cancelled">Cancelled</option>
                 </select>
               </div>
 

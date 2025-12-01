@@ -608,6 +608,31 @@
   font-weight: 600;
 }
 
+.cancelled-orders .section-title {
+  color: #e74c3c;
+  border-bottom-color: #e74c3c;
+}
+
+.cancelled-row {
+  background-color: #fdf5f5;
+  opacity: 0.85;
+}
+
+.cancelled-row:hover {
+  background-color: #fce8e8;
+  opacity: 0.95;
+}
+
+.cancelled-status {
+  display: inline-block;
+  background-color: #e74c3c;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
 /* Loading Spinner */
 .loading-container {
   display: flex;
