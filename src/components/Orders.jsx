@@ -99,6 +99,8 @@ function Orders() {
         return '#2ecc71';
       case 'pending':
         return '#f39c12';
+      case 'cancelled':
+        return '#e74c3c';
       default:
         return '#95a5a6';
     }

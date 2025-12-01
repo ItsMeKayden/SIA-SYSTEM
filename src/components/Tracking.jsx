@@ -81,6 +81,7 @@ function Tracking() {
       Processing: ['received', 'processing'],
       Ready: ['received', 'processing', 'ready'],
       Completed: ['received', 'processing', 'ready', 'pickedup'],
+      Cancelled: [],
     };
 
     const completedStatuses = statusMap[orderStatus] || [];

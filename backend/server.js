@@ -806,9 +806,17 @@ app.delete('/orders/:id', (req, res) => {
 // FOR GETTING ALL STAFF
 app.get('/staff', (req, res) => {
   console.log('GET /staff endpoint called');
-  const sql = 'SELECT fld_staffID, fld_adminID, fld_name, fld_email, fld_role FROM tbl_management';
+  const adminID = req.query.adminID;
+  
+  let sql = 'SELECT fld_staffID, fld_adminID, fld_name, fld_email, fld_role FROM tbl_management';
+  let params = [];
+  
+  if (adminID) {
+    sql += ' WHERE fld_adminID = ?';
+    params.push(adminID);
+  }
 
-  db.query(sql, (err, result) => {
+  db.query(sql, params, (err, result) => {
     if (err) {
       console.error('Staff fetch error:', err);
       res.json({
