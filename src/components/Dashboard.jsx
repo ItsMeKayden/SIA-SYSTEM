@@ -5,14 +5,12 @@ import Orders from './Orders';
 import Tracking from './Tracking';
 import Profile from './Profile';
 
-
 function Dashboard({ userData, onLogout, onRefreshUserData }) {
   const [activeTab, setActiveTab] = useState('orders');
-  
+
   const getUserName = () => {
     if (!userData) return 'Username Not Found';
-    
-    // Try different possible field names from your database
+
     return userData.fld_username;
   };
 
@@ -21,7 +19,6 @@ function Dashboard({ userData, onLogout, onRefreshUserData }) {
     if (onLogout) {
       onLogout();
     } else {
-      // Fallback if onLogout is not provided
       console.log('Logged out');
       window.location.href = '/';
     }
@@ -45,7 +42,12 @@ function Dashboard({ userData, onLogout, onRefreshUserData }) {
         <main className="dashboard-content">
           {activeTab === 'orders' && <Orders userData={userData} />}
           {activeTab === 'tracking' && <Tracking userData={userData} />}
-          {activeTab === 'profile' && <Profile userData={userData} onRefreshUserData={onRefreshUserData} />}
+          {activeTab === 'profile' && (
+            <Profile
+              userData={userData}
+              onRefreshUserData={onRefreshUserData}
+            />
+          )}
         </main>
       </div>
     </div>

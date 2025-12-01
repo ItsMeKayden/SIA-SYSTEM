@@ -270,7 +270,6 @@ function AdminOrders() {
       return;
     }
     setEditOrder(order.fld_orderID);
-    // Convert ISO date to yyyy-MM-dd format for date input
     const dateObject = new Date(order.fld_orderDate);
     const formattedDate = dateObject.toISOString().split('T')[0];
     setEditFormData({
@@ -523,13 +522,13 @@ function AdminOrders() {
       return;
     }
 
-    // Validate date is not in the past
+    // Validate date making sure that it's not in the past
     const selectedDate = new Date(newOrderForm.orderDate);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     if (selectedDate < today) {
-      showErrorToast('Order date cannot be in the past');
+      showErrorToast('You cannot set Order date to be in the past');
       return;
     }
 
@@ -1217,6 +1216,7 @@ function AdminOrders() {
                   name="orderDate"
                   value={newOrderForm.orderDate}
                   onChange={handleAddFormChange}
+                  //uncomment if you want to restrict past dates
                   min={getTodayDate()}
                   required
                 />
@@ -1324,7 +1324,7 @@ function AdminOrders() {
             style={{ maxWidth: '900px' }}
           >
             <div className="modal-header">
-              <h3>Past Completed Orders (Older than 1 Day)</h3>
+              <h3>Past Orders</h3>
               <button
                 className="close-btn"
                 onClick={() => closeHiddenOrdersModal()}

@@ -9,7 +9,7 @@ app.use(express.json());
 const db = mysql.createConnection({
   host: 'localhost',
   user: 'root',
-  password: '061504',
+  password: '1234',
   database: 'washtrack_db',
 });
 
@@ -28,8 +28,9 @@ app.post('/signupuser', (req, res) => {
   const { username, password, email, contact, address, isAdmin } = req.body;
 
   if (isAdmin) {
-    // ADMIN REGISTRATION - Insert into tbl_admin
-    const checkEmailSql = 'SELECT fld_adminID FROM tbl_admin WHERE fld_email = ?';
+    // ADMIN REGISTRATION
+    const checkEmailSql =
+      'SELECT fld_adminID FROM tbl_admin WHERE fld_email = ?';
 
     db.query(checkEmailSql, [email], (checkErr, emailResult) => {
       if (checkErr) {
@@ -79,7 +80,7 @@ app.post('/signupuser', (req, res) => {
       });
     });
   } else {
-    // USER REGISTRATION - Insert into tbl_user
+    // USER REGISTRATION
     const checkEmailSql = 'SELECT fld_userID FROM tbl_user WHERE fld_email = ?';
 
     db.query(checkEmailSql, [email], (checkErr, emailResult) => {
@@ -97,7 +98,6 @@ app.post('/signupuser', (req, res) => {
         });
       }
 
-      // INSERT INTO tbl_user
       const sql =
         'INSERT INTO tbl_user (fld_username, fld_password, fld_email, fld_contact) VALUES (?, ?, ?, ?)';
 
@@ -161,7 +161,6 @@ app.post('/signupuser', (req, res) => {
                   });
                 }
 
-                // Success: all three inserts completed
                 res.json({
                   success: true,
                   message: 'User registered successfully!',
@@ -291,7 +290,7 @@ app.get('/getuser/id/:userId', (req, res) => {
   });
 });
 
-// FOR GETTING ALL USERS
+// FOR GETTING ALL USERS TO DISPLAY IN ADMIN DASHOBARD
 app.get('/allusers', (req, res) => {
   const sql = `
     SELECT 
@@ -575,7 +574,7 @@ app.get('/orders', (req, res) => {
       }
     );
   } else {
-    // Fetch all orders (for admin)
+    // Fetching all of orders for admin
     sql += ` ORDER BY o.fld_orderDate DESC`;
     console.log('Fetching all orders');
     db.query(sql, (err, result) => {
@@ -616,7 +615,6 @@ app.post('/orders', (req, res) => {
     return;
   }
 
-  // Convert adminID to integer
   const adminIDInt = parseInt(adminID);
 
   // Validate that adminID exists
@@ -625,7 +623,6 @@ app.post('/orders', (req, res) => {
   db.query(validateAdminSql, [adminIDInt], (err, adminResult) => {
     if (err) {
       console.error('Admin validation error:', err);
-      // If validation fails, still allow order creation (admin table may not be properly set up)
       proceedWithOrderCreation();
       return;
     }
@@ -639,7 +636,6 @@ app.post('/orders', (req, res) => {
 
     if (adminResult.length === 0) {
       console.log('Admin ID not found, proceeding anyway:', adminIDInt);
-      // Admin doesn't exist but we'll allow it anyway to prevent blocking order creation
       proceedWithOrderCreation();
       return;
     }
@@ -807,10 +803,11 @@ app.delete('/orders/:id', (req, res) => {
 app.get('/staff', (req, res) => {
   console.log('GET /staff endpoint called');
   const adminID = req.query.adminID;
-  
-  let sql = 'SELECT fld_staffID, fld_adminID, fld_name, fld_email, fld_role FROM tbl_management';
+
+  let sql =
+    'SELECT fld_staffID, fld_adminID, fld_name, fld_email, fld_role FROM tbl_management';
   let params = [];
-  
+
   if (adminID) {
     sql += ' WHERE fld_adminID = ?';
     params.push(adminID);

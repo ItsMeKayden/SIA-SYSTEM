@@ -5,25 +5,20 @@ import Management from './Management';
 import Reports from './Reports';
 import Services from './Services';
 
-
 function AdminDashboard({ userData, onLogout }) {
   const [activeTab, setActiveTab] = useState('orders');
-  
-  // GET ADMIN NAME FROM USER DATA
+
   const getAdminName = () => {
     if (!userData) return 'Admin';
-    
-    // Try different possible field names from your database
+
     return userData.fld_username;
   };
-
 
   //USES THE LOGOUT FUNCTION PASSED AS PROP FROM App.JSX
   const handleLogout = () => {
     if (onLogout) {
       onLogout();
     } else {
-      // Fallback if onLogout is not provided
       console.log('Admin logged out');
       window.location.href = '/';
     }
@@ -34,7 +29,7 @@ function AdminDashboard({ userData, onLogout }) {
       <header className="admin-header">
         <div className="header-left">
           <h2 className="logo">WashTrack Admin</h2>
-          <p className="welcome-text">Welcome, {getAdminName()}</p> {/* ✅ USE DYNAMIC NAME */}
+          <p className="welcome-text">Welcome, {getAdminName()}</p>{' '}
         </div>
         <button className="logout-btn" onClick={handleLogout}>
           Logout

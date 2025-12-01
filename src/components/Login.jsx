@@ -19,7 +19,6 @@ function Login({ onSwitchToRegister, onLoginSuccess }) {
     setError('');
     setMessage('');
 
-    // Email validation
     if (!email.trim()) {
       setError('Email is required');
       return;
@@ -30,7 +29,6 @@ function Login({ onSwitchToRegister, onLoginSuccess }) {
       return;
     }
 
-    // Password validation
     if (!password) {
       setError('Password is required');
       return;
