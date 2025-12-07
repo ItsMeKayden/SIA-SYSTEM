@@ -93,13 +93,53 @@ function Tracking() {
     }));
   };
 
+  // Sort orders: Active orders first (FIFO), then completed/cancelled at bottom
+  const sortOrders = (ordersArray) => {
+    // Separate active and completed/cancelled orders
+    const activeOrders = ordersArray.filter(
+      (order) =>
+        order.fld_orderStatus !== 'Completed' &&
+        order.fld_orderStatus !== 'Cancelled'
+    );
+
+    const completedOrders = ordersArray.filter(
+      (order) =>
+        order.fld_orderStatus === 'Completed' ||
+        order.fld_orderStatus === 'Cancelled'
+    );
+
+    // Sort active orders by FIFO (date first, then order ID)
+    const sortedActive = [...activeOrders].sort((a, b) => {
+      const dateA = new Date(a.fld_orderDate);
+      const dateB = new Date(b.fld_orderDate);
+
+      if (dateA.getTime() !== dateB.getTime()) {
+        return dateA - dateB; // Earlier dates first
+      }
+
+      return a.fld_orderID - b.fld_orderID; // Lower ID first
+    });
+
+    // Sort completed/cancelled orders by date (most recent first)
+    const sortedCompleted = [...completedOrders].sort((a, b) => {
+      const dateA = new Date(a.fld_orderDate);
+      const dateB = new Date(b.fld_orderDate);
+      return dateB - dateA; // Most recent first
+    });
+
+    // Combine: active orders first, then completed/cancelled
+    return [...sortedActive, ...sortedCompleted];
+  };
+
   const filteredOrders =
     filteredTerm.trim() === ''
-      ? orders
-      : orders.filter((order) =>
-          String(order.fld_orderID)
-            .toLowerCase()
-            .includes(filteredTerm.toLowerCase())
+      ? sortOrders(orders)
+      : sortOrders(
+          orders.filter((order) =>
+            String(order.fld_orderID)
+              .toLowerCase()
+              .includes(filteredTerm.toLowerCase())
+          )
         );
 
   const handleSearch = () => {
@@ -153,7 +193,7 @@ function Tracking() {
       <div className="tracking-header">
         <h3>Order Tracking</h3>
         <p className="tracking-subtitle">
-          Track the status of your laundry orders
+          Track the status of your laundry orders (Active orders shown first)
         </p>
       </div>
 
@@ -179,6 +219,11 @@ function Tracking() {
                 key={order.fld_orderID}
                 className={`order-item ${
                   selectedOrder === order.fld_orderID ? 'selected' : ''
+                } ${
+                  order.fld_orderStatus === 'Completed' ||
+                  order.fld_orderStatus === 'Cancelled'
+                    ? 'completed-order'
+                    : ''
                 }`}
                 onClick={() => setSelectedOrder(order.fld_orderID)}
               >

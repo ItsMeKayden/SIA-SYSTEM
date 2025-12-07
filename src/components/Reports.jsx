@@ -21,9 +21,9 @@ function Reports() {
   const [stats, setStats] = useState([
     {
       label: 'Total Revenue',
-      value: '$0',
+      value: '₱0',
       subtitle: 'All time',
-      icon: '$',
+      icon: '₱',
     },
     {
       label: 'Total Orders',
@@ -39,9 +39,9 @@ function Reports() {
     },
     {
       label: 'Avg. Order Value',
-      value: '$0',
+      value: '₱0',
       subtitle: 'Average per order',
-      icon: '$',
+      icon: '₱',
     },
   ]);
 
@@ -210,13 +210,11 @@ function Reports() {
             return false;
           }).length;
         } else {
-          // All users if no time period selected
           activeCustomers = users.length;
         }
 
         const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
-        // Get time period label for stats
         const getTimePeriodLabel = () => {
           if (dateRange.startDate) return 'In date range';
           switch (timePeriod) {
@@ -239,9 +237,9 @@ function Reports() {
         setStats([
           {
             label: 'Total Revenue',
-            value: `$${totalRevenue.toFixed(2)}`,
+            value: `₱${totalRevenue.toFixed(2)}`,
             subtitle: getTimePeriodLabel(),
-            icon: '$',
+            icon: '₱',
           },
           {
             label: 'Total Orders',
@@ -257,9 +255,9 @@ function Reports() {
           },
           {
             label: 'Avg. Order Value',
-            value: `$${avgOrderValue.toFixed(2)}`,
+            value: `₱${avgOrderValue.toFixed(2)}`,
             subtitle: 'Average per order',
-            icon: '$',
+            icon: '₱',
           },
         ]);
 
@@ -327,6 +325,12 @@ function Reports() {
   const handleDownloadComprehensivePDF = async () => {
     try {
       const pdf = new jsPDF('p', 'mm', 'a4');
+
+      // Helper function to replace peso signs for PDF
+      const formatForPDF = (text) => {
+        return String(text).replace(/₱/g, 'PHP ');
+      };
+
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
       let yPosition = 10;
@@ -337,7 +341,7 @@ function Reports() {
       // Title
       pdf.setFontSize(20);
       pdf.setTextColor(102, 126, 234);
-      pdf.text('COMPREHENSIVE BUSINESS REPORT', margin, yPosition);
+      pdf.text('Laundry Sales Report', margin, yPosition);
       yPosition += 15;
 
       // Report Period
@@ -345,7 +349,10 @@ function Reports() {
       pdf.setTextColor(100, 100, 100);
       const periodLabel =
         timePeriod !== 'all'
-          ? timePeriod.replace(/([A-Z])/g, ' $1').toUpperCase()
+          ? timePeriod
+              .replace(/([A-Z])/g, ' $1')
+              .toUpperCase()
+              .trim()
           : 'ALL TIME';
       pdf.text(`Report Period: ${periodLabel}`, margin, yPosition);
       yPosition += 7;
@@ -365,7 +372,6 @@ function Reports() {
       // Stats boxes
       pdf.setFontSize(10);
       const statsPerRow = 2;
-      let statsIndex = 0;
 
       stats.forEach((stat, idx) => {
         const col = idx % statsPerRow;
@@ -393,7 +399,7 @@ function Reports() {
         pdf.setTextColor(0, 0, 0);
         pdf.setFontSize(12);
         pdf.setFont(undefined, 'bold');
-        pdf.text(stat.value, boxX + 5, boxY + 12);
+        pdf.text(formatForPDF(stat.value), boxX + 5, boxY + 12);
         pdf.setFont(undefined, 'normal');
 
         // Subtitle
@@ -453,7 +459,7 @@ function Reports() {
         xPos = margin;
         const rowData = [
           month.month,
-          `$${month.value.toFixed(2)}`,
+          formatForPDF(`₱${month.value.toFixed(2)}`),
           orders.toString(),
         ];
 
@@ -516,7 +522,7 @@ function Reports() {
           `#${idx + 1}`,
           customer.username,
           customer.orderCount.toString(),
-          `$${customer.totalSpent.toFixed(2)}`,
+          formatForPDF(`₱${customer.totalSpent.toFixed(2)}`),
         ];
 
         custRowData.forEach((data, i) => {
@@ -581,7 +587,7 @@ function Reports() {
         const repeatRowData = [
           customer.username,
           customer.orderCount.toString(),
-          `$${customer.totalSpent.toFixed(2)}`,
+          formatForPDF(`₱${customer.totalSpent.toFixed(2)}`),
         ];
 
         repeatRowData.forEach((data, i) => {
@@ -649,7 +655,7 @@ function Reports() {
             order.fld_orderID || 'N/A',
             order.fld_userID || 'N/A',
             user?.fld_username || 'Unknown',
-            `$${parseFloat(order.fld_amount || 0).toFixed(2)}`,
+            formatForPDF(`₱${parseFloat(order.fld_amount || 0).toFixed(2)}`),
             order.fld_orderStatus || 'N/A',
             date,
           ];
@@ -865,9 +871,9 @@ function Reports() {
               <div className="bar-chart">
                 <div className="chart-labels">
                   <div className="y-axis-labels">
-                    <div className="y-label">${maxRevenue.toFixed(0)}</div>
+                    <div className="y-label">₱{maxRevenue.toFixed(0)}</div>
                     <div className="y-label">
-                      ${(maxRevenue / 2).toFixed(0)}
+                      ₱{(maxRevenue / 2).toFixed(0)}
                     </div>
                     <div className="y-label">0</div>
                   </div>
@@ -990,7 +996,7 @@ function Reports() {
                         <td>#{index + 1}</td>
                         <td>{customer.username}</td>
                         <td className="center">{customer.orderCount}</td>
-                        <td>${customer.totalSpent.toFixed(2)}</td>
+                        <td>₱{customer.totalSpent.toFixed(2)}</td>
                       </tr>
                     ))
                   ) : (
@@ -1020,7 +1026,7 @@ function Reports() {
                       <tr key={customer.userId}>
                         <td>{customer.username}</td>
                         <td className="center">{customer.orderCount}</td>
-                        <td>${customer.totalSpent.toFixed(2)}</td>
+                        <td>₱{customer.totalSpent.toFixed(2)}</td>
                       </tr>
                     ))
                   ) : (

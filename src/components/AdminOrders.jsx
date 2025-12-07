@@ -33,11 +33,11 @@ function AdminOrders() {
   const [newOrderForm, setNewOrderForm] = useState({
     userID: '',
     userName: '',
-    orderDate: '',
+    orderDate: new Date().toISOString().split('T')[0],
     items: '',
     status: 'Pending',
     selectedServices: [],
-    amount: '$0.00',
+    amount: '₱0.00',
   });
 
   // Fetch orders and services on component mount
@@ -285,6 +285,12 @@ function AdminOrders() {
 
   const handleEditFormChange = (e) => {
     const { name, value } = e.target;
+
+    // Prevent orderDate from being changed
+    if (name === 'orderDate') {
+      return;
+    }
+
     setEditFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -441,7 +447,7 @@ function AdminOrders() {
       return {
         ...prev,
         selectedServices: updatedServices,
-        amount: `$${totalPrice.toFixed(2)}`,
+        amount: `₱${totalPrice.toFixed(2)}`,
       };
     });
   };
@@ -451,16 +457,22 @@ function AdminOrders() {
     setNewOrderForm({
       userID: '',
       userName: '',
-      orderDate: '',
+      orderDate: new Date().toISOString().split('T')[0],
       items: '',
       status: 'Pending',
       selectedServices: [],
-      amount: '$0.00',
+      amount: '₱0.00',
     });
   };
 
   const handleAddFormChange = (e) => {
     const { name, value } = e.target;
+
+    // Prevent orderDate from being changed
+    if (name === 'orderDate') {
+      return;
+    }
+
     setNewOrderForm((prev) => ({
       ...prev,
       [name]: value,
@@ -509,10 +521,6 @@ function AdminOrders() {
       showErrorToast('Please select a customer');
       return;
     }
-    if (!newOrderForm.orderDate) {
-      showErrorToast('Please select an order date');
-      return;
-    }
     if (newOrderForm.selectedServices.length === 0) {
       showErrorToast('Please select a service');
       return;
@@ -522,18 +530,8 @@ function AdminOrders() {
       return;
     }
 
-    // Validate date making sure that it's not in the past
-    const selectedDate = new Date(newOrderForm.orderDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    if (selectedDate < today) {
-      showErrorToast('You cannot set Order date to be in the past');
-      return;
-    }
-
-    // Validate amount is greater than 0
-    const amount = parseFloat(newOrderForm.amount.replace('$', ''));
+    // Validate the amount make sure that its greater than 0
+    const amount = parseFloat(newOrderForm.amount.replace('₱', ''));
     if (isNaN(amount) || amount <= 0) {
       showErrorToast('Amount must be greater than 0');
       return;
@@ -731,12 +729,12 @@ function AdminOrders() {
                           <option value="Pending">Pending</option>
                           <option value="Processing">Processing</option>
                           <option value="Ready">Ready</option>
-                          <option value="Completed">Completed</option>
-                          <option value="Cancelled">Cancelled</option>
+                          <option value="Completed">Complete</option>
+                          <option value="Cancelled">Cancel</option>
                         </select>
                       </td>
                       <td className="total-cell">
-                        ${parseFloat(order.fld_amount).toFixed(2)}
+                        ₱{parseFloat(order.fld_amount).toFixed(2)}
                       </td>
                       <td className="actions-cell">
                         <button
@@ -807,7 +805,7 @@ function AdminOrders() {
                         <span className="completed-status">Completed</span>
                       </td>
                       <td className="total-cell">
-                        ${parseFloat(order.fld_amount).toFixed(2)}
+                        ₱{parseFloat(order.fld_amount).toFixed(2)}
                       </td>
                       <td className="actions-cell">
                         <button
@@ -856,7 +854,7 @@ function AdminOrders() {
                         <span className="cancelled-status">Cancelled</span>
                       </td>
                       <td className="total-cell">
-                        ${parseFloat(order.fld_amount).toFixed(2)}
+                        ₱{parseFloat(order.fld_amount).toFixed(2)}
                       </td>
                       <td className="actions-cell">
                         <button
@@ -994,7 +992,7 @@ function AdminOrders() {
               <div className="detail-group">
                 <label>Total Amount</label>
                 <p className="total-amount">
-                  ${parseFloat(viewOrder.fld_amount).toFixed(2)}
+                  ₱{parseFloat(viewOrder.fld_amount).toFixed(2)}
                 </p>
               </div>
 
@@ -1085,7 +1083,7 @@ function AdminOrders() {
                           disabled={service.fld_serviceStatus !== 'Available'}
                         />
                         <span className="checkbox-label">
-                          {service.fld_serviceName} - $
+                          {service.fld_serviceName} - ₱
                           {parseFloat(service.fld_servicePrice).toFixed(2)}
                         </span>
                       </label>
@@ -1099,12 +1097,13 @@ function AdminOrders() {
               <div className="form-group">
                 <label htmlFor="edit-date">Order Date</label>
                 <input
-                  type="date"
+                  type="text"
                   id="edit-date"
                   name="orderDate"
-                  value={editFormData.orderDate}
-                  onChange={handleEditFormChange}
-                  required
+                  value={new Date(editFormData.orderDate).toLocaleDateString()}
+                  readOnly
+                  disabled
+                  className="read-only-field"
                 />
               </div>
 
@@ -1146,8 +1145,8 @@ function AdminOrders() {
                   type="text"
                   id="edit-amount"
                   name="amount"
-                  value={`$${parseFloat(editFormData.amount || 0).toFixed(2)}`}
-                  placeholder="$0.00"
+                  value={`₱${parseFloat(editFormData.amount || 0).toFixed(2)}`}
+                  placeholder="₱0.00"
                   readOnly
                   disabled
                   className="read-only-field"
@@ -1211,14 +1210,13 @@ function AdminOrders() {
               <div className="form-group">
                 <label htmlFor="add-date">Order Date</label>
                 <input
-                  type="date"
+                  type="text"
                   id="add-date"
                   name="orderDate"
-                  value={newOrderForm.orderDate}
-                  onChange={handleAddFormChange}
-                  //uncomment if you want to restrict past dates
-                  min={getTodayDate()}
-                  required
+                  value={new Date(newOrderForm.orderDate).toLocaleDateString()}
+                  readOnly
+                  disabled
+                  className="read-only-field"
                 />
               </div>
 
@@ -1243,7 +1241,7 @@ function AdminOrders() {
                           disabled={service.fld_serviceStatus !== 'Available'}
                         />
                         <span className="checkbox-label">
-                          {service.fld_serviceName} - $
+                          {service.fld_serviceName} - ₱
                           {parseFloat(service.fld_servicePrice).toFixed(2)}
                         </span>
                       </label>
@@ -1292,7 +1290,7 @@ function AdminOrders() {
                   id="add-total"
                   name="amount"
                   value={newOrderForm.amount}
-                  placeholder="$0.00"
+                  placeholder="₱0.00"
                   readOnly
                   className="read-only-field"
                 />
@@ -1489,7 +1487,7 @@ function AdminOrders() {
                         <td>{order.fld_serviceName || '-'}</td>
                         <td>{order.fld_items || '-'}</td>
                         <td className="total-cell">
-                          ${parseFloat(order.fld_amount).toFixed(2)}
+                          ₱{parseFloat(order.fld_amount).toFixed(2)}
                         </td>
                         <td className="actions-cell">
                           <button

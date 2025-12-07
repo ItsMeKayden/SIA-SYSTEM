@@ -68,6 +68,30 @@ function Orders() {
     }
   };
 
+  // FIFO Algorithm: Sort orders by date and order ID (earliest first)
+  // Only show orders that are still in queue (not completed or cancelled)
+  const sortOrdersByFIFO = (ordersArray) => {
+    // Filter to only show active orders (in queue)
+    const activeOrders = ordersArray.filter(
+      (order) =>
+        order.fld_orderStatus !== 'Completed' &&
+        order.fld_orderStatus !== 'Cancelled'
+    );
+
+    return [...activeOrders].sort((a, b) => {
+      // First, sort by date (earliest date first)
+      const dateA = new Date(a.fld_orderDate);
+      const dateB = new Date(b.fld_orderDate);
+
+      if (dateA.getTime() !== dateB.getTime()) {
+        return dateA - dateB; // Earlier dates come first
+      }
+
+      // If dates are the same, sort by order ID (lower ID first - first created)
+      return a.fld_orderID - b.fld_orderID;
+    });
+  };
+
   const filteredOrders = orders.filter(
     (order) =>
       (order.fld_orderID &&
@@ -78,6 +102,23 @@ function Orders() {
       (order.fld_items &&
         order.fld_items.toLowerCase().includes(filteredTerm.toLowerCase()))
   );
+
+  // Apply FIFO sorting to filtered orders (only active orders in queue)
+  const queueOrders = sortOrdersByFIFO(filteredOrders);
+
+  // Separate completed/cancelled orders (not in queue)
+  const completedOrders = filteredOrders
+    .filter(
+      (order) =>
+        order.fld_orderStatus === 'Completed' ||
+        order.fld_orderStatus === 'Cancelled'
+    )
+    .sort((a, b) => {
+      // Sort completed orders by date (most recent first)
+      const dateA = new Date(a.fld_orderDate);
+      const dateB = new Date(b.fld_orderDate);
+      return dateB - dateA;
+    });
 
   const handleSearch = () => {
     setFilteredTerm(searchTerm);
@@ -121,7 +162,9 @@ function Orders() {
       <div className="orders-header">
         <div className="header-content">
           <h3>My Orders</h3>
-          <p className="orders-subtitle">View and track your orders</p>
+          <p className="orders-subtitle">
+            Track your orders in queue (First Come First Serve)
+          </p>
         </div>
       </div>
 
@@ -139,42 +182,149 @@ function Orders() {
         </button>
       </div>
 
-      <div className="table-wrapper">
-        <table className="orders-table">
-          <thead>
-            <tr>
-              <th>Order ID</th>
-              <th>Date</th>
-              <th>Service</th>
-              <th>Items</th>
-              <th>Status</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredOrders && filteredOrders.length > 0 ? (
-              filteredOrders.map((order) => (
-                <tr key={order.fld_orderID}>
-                  <td className="order-id">{order.fld_orderID}</td>
-                  <td>{new Date(order.fld_orderDate).toLocaleDateString()}</td>
-                  <td>{order.fld_serviceName || '-'}</td>
-                  <td>{order.fld_items || '-'}</td>
-                  <td>
-                    <span
-                      className="status-badge"
-                      style={{
-                        backgroundColor: getStatusColor(order.fld_orderStatus),
-                      }}
-                    >
-                      {order.fld_orderStatus}
-                    </span>
-                  </td>
-                  <td className="total">
-                    ${parseFloat(order.fld_amount).toFixed(2)}
-                  </td>
+      {/* Active Orders in Queue */}
+      {queueOrders && queueOrders.length > 0 && (
+        <div style={{ marginBottom: '30px' }}>
+          <h4
+            style={{
+              padding: '15px 20px',
+              backgroundColor: '#f8f9fa',
+              margin: '0 0 10px 0',
+              borderLeft: '4px solid #667eea',
+              fontWeight: '600',
+            }}
+          >
+            🕐 Orders in Queue ({queueOrders.length})
+          </h4>
+          <div className="table-wrapper">
+            <table className="orders-table">
+              <thead>
+                <tr>
+                  <th>Queue #</th>
+                  <th>Order ID</th>
+                  <th>Date</th>
+                  <th>Service</th>
+                  <th>Items</th>
+                  <th>Status</th>
+                  <th>Total</th>
                 </tr>
-              ))
-            ) : (
+              </thead>
+              <tbody>
+                {queueOrders.map((order, index) => (
+                  <tr key={order.fld_orderID}>
+                    <td className="queue-number">
+                      <span
+                        style={{
+                          fontWeight: 'bold',
+                          color: '#667eea',
+                          fontSize: '16px',
+                        }}
+                      >
+                        #{index + 1}
+                      </span>
+                    </td>
+                    <td className="order-id">{order.fld_orderID}</td>
+                    <td>
+                      {new Date(order.fld_orderDate).toLocaleDateString()}
+                    </td>
+                    <td>{order.fld_serviceName || '-'}</td>
+                    <td>{order.fld_items || '-'}</td>
+                    <td>
+                      <span
+                        className="status-badge"
+                        style={{
+                          backgroundColor: getStatusColor(
+                            order.fld_orderStatus
+                          ),
+                        }}
+                      >
+                        {order.fld_orderStatus}
+                      </span>
+                    </td>
+                    <td className="total">
+                      ₱{parseFloat(order.fld_amount).toFixed(2)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Completed/Cancelled Orders */}
+      {completedOrders && completedOrders.length > 0 && (
+        <div>
+          <h4
+            style={{
+              padding: '15px 20px',
+              backgroundColor: '#f8f9fa',
+              margin: '0 0 10px 0',
+              borderLeft: '4px solid #95a5a6',
+              fontWeight: '600',
+            }}
+          >
+            ✓ Order History ({completedOrders.length})
+          </h4>
+          <div className="table-wrapper">
+            <table className="orders-table">
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Date</th>
+                  <th>Service</th>
+                  <th>Items</th>
+                  <th>Status</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {completedOrders.map((order) => (
+                  <tr key={order.fld_orderID}>
+                    <td className="order-id">{order.fld_orderID}</td>
+                    <td>
+                      {new Date(order.fld_orderDate).toLocaleDateString()}
+                    </td>
+                    <td>{order.fld_serviceName || '-'}</td>
+                    <td>{order.fld_items || '-'}</td>
+                    <td>
+                      <span
+                        className="status-badge"
+                        style={{
+                          backgroundColor: getStatusColor(
+                            order.fld_orderStatus
+                          ),
+                        }}
+                      >
+                        {order.fld_orderStatus}
+                      </span>
+                    </td>
+                    <td className="total">
+                      ₱{parseFloat(order.fld_amount).toFixed(2)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* No orders message */}
+      {queueOrders.length === 0 && completedOrders.length === 0 && (
+        <div className="table-wrapper">
+          <table className="orders-table">
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Date</th>
+                <th>Service</th>
+                <th>Items</th>
+                <th>Status</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
               <tr>
                 <td
                   colSpan="6"
@@ -183,10 +333,10 @@ function Orders() {
                   No orders available
                 </td>
               </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+            </tbody>
+          </table>
+        </div>
+      )}
     </section>
   );
 }

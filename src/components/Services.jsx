@@ -124,7 +124,7 @@ function Services() {
     }
 
     if (!validatePrice(editFormData.price)) {
-      setError('Please enter a valid price (e.g., 15.00)');
+      setError('Please enter a valid price (e.g., ₱15.00)');
       return;
     }
 
@@ -213,7 +213,7 @@ function Services() {
     }
 
     if (!validatePrice(formData.price)) {
-      setError('Please enter a valid price (e.g., 15.00)');
+      setError('Please enter a valid price (e.g., ₱15.00)');
       return;
     }
 
@@ -296,7 +296,7 @@ function Services() {
                       {service.fld_serviceStatus}
                     </span>
                   </td>
-                  <td className="price-cell">{service.fld_servicePrice}</td>
+                  <td className="price-cell">₱{service.fld_servicePrice}</td>
                   <td className="actions-cell">
                     <button
                       className="action-btn edit-btn"
@@ -388,7 +388,7 @@ function Services() {
                     type="text"
                     id="price"
                     name="price"
-                    placeholder="e.g., $15.00"
+                    placeholder="e.g., ₱15.00"
                     value={formData.price}
                     onChange={handleInputChange}
                     required
@@ -498,7 +498,7 @@ function Services() {
                   onChange={(e) =>
                     setEditFormData({ ...editFormData, price: e.target.value })
                   }
-                  placeholder="e.g., $15.00"
+                  placeholder="e.g., ₱15.00"
                 />
               </div>
               <div className="form-actions">
