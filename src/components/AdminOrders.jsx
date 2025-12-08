@@ -33,7 +33,6 @@ function AdminOrders() {
   const [newOrderForm, setNewOrderForm] = useState({
     userID: '',
     userName: '',
-    orderDate: new Date().toISOString().split('T')[0],
     items: '',
     status: 'Pending',
     selectedServices: [],
@@ -457,7 +456,6 @@ function AdminOrders() {
     setNewOrderForm({
       userID: '',
       userName: '',
-      orderDate: new Date().toISOString().split('T')[0],
       items: '',
       status: 'Pending',
       selectedServices: [],
@@ -467,11 +465,6 @@ function AdminOrders() {
 
   const handleAddFormChange = (e) => {
     const { name, value } = e.target;
-
-    // Prevent orderDate from being changed
-    if (name === 'orderDate') {
-      return;
-    }
 
     setNewOrderForm((prev) => ({
       ...prev,
@@ -541,7 +534,6 @@ function AdminOrders() {
       const orderData = {
         userID: parseInt(newOrderForm.userID),
         serviceID: newOrderForm.selectedServices[0],
-        orderDate: newOrderForm.orderDate,
         status: newOrderForm.status,
         amount: amount.toString(),
         adminID: adminID,
@@ -1204,19 +1196,6 @@ function AdminOrders() {
                   readOnly
                   className="read-only-field"
                   placeholder="Enter user ID above"
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="add-date">Order Date</label>
-                <input
-                  type="text"
-                  id="add-date"
-                  name="orderDate"
-                  value={new Date(newOrderForm.orderDate).toLocaleDateString()}
-                  readOnly
-                  disabled
-                  className="read-only-field"
                 />
               </div>
 
