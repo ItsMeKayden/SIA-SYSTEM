@@ -9,7 +9,7 @@ app.use(express.json());
 const db = mysql.createConnection({
   host: 'localhost',
   user: 'root',
-  password: '1234',
+  password: '061504',
   database: 'washtrack_db',
 });
 
@@ -593,13 +593,11 @@ app.get('/orders', (req, res) => {
 
 // FOR CREATING A NEW ORDER
 app.post('/orders', (req, res) => {
-  const { userID, serviceID, orderDate, status, amount, adminID, items } =
-    req.body;
+  const { userID, serviceID, status, amount, adminID, items } = req.body;
 
   console.log('Creating order with:', {
     userID,
     serviceID,
-    orderDate,
     status,
     amount,
     adminID,
@@ -646,11 +644,11 @@ app.post('/orders', (req, res) => {
 
   function proceedWithOrderCreation() {
     const sql =
-      'INSERT INTO tbl_orders (fld_userID, fld_serviceID, fld_orderDate, fld_orderStatus, fld_amount, fld_adminID, fld_items) VALUES (?, ?, ?, ?, ?, ?, ?)';
+      'INSERT INTO tbl_orders (fld_userID, fld_serviceID, fld_orderStatus, fld_amount, fld_adminID, fld_items) VALUES (?, ?, ?, ?, ?, ?)';
 
     db.query(
       sql,
-      [userID, serviceID, orderDate, status, amount, adminIDInt, items],
+      [userID, serviceID, status, amount, adminIDInt, items],
       (err, result) => {
         if (err) {
           console.error('Database error:', err);
@@ -660,12 +658,12 @@ app.post('/orders', (req, res) => {
           });
         } else {
           // Fetch the newly created order to get its ID
-          // We'll find it by matching userID, adminID, orderDate, and items
+          // We'll find it by matching userID, adminID, serviceID and items
           const fetchSql =
-            'SELECT fld_orderID FROM tbl_orders WHERE fld_userID = ? AND fld_adminID = ? AND fld_serviceID = ? AND fld_orderDate = ? AND fld_items = ? ORDER BY fld_orderID DESC LIMIT 1';
+            'SELECT fld_orderID FROM tbl_orders WHERE fld_userID = ? AND fld_adminID = ? AND fld_serviceID = ? AND fld_items = ? ORDER BY fld_orderID DESC LIMIT 1';
           db.query(
             fetchSql,
-            [userID, adminIDInt, serviceID, orderDate, items],
+            [userID, adminIDInt, serviceID, items],
             (fetchErr, fetchResult) => {
               if (fetchErr || !fetchResult || fetchResult.length === 0) {
                 console.error('Failed to retrieve created order ID:', fetchErr);

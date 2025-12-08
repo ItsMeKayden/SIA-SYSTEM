@@ -28,13 +28,12 @@ function AdminOrders() {
     orderDate: '',
     status: 'Pending',
     amount: '',
-    items: '',
+    weight: '',
   });
   const [newOrderForm, setNewOrderForm] = useState({
     userID: '',
     userName: '',
-    orderDate: new Date().toISOString().split('T')[0],
-    items: '',
+    weight: '',
     status: 'Pending',
     selectedServices: [],
     amount: '₱0.00',
@@ -442,7 +441,11 @@ function AdminOrders() {
 
       // Get price from the selected service
       const service = services.find((s) => s.fld_serviceID === serviceId);
-      const totalPrice = service ? parseFloat(service.fld_servicePrice) : 0;
+      const pricePerKg = service ? parseFloat(service.fld_servicePrice) : 0;
+      const weight = prev.weight ? parseFloat(prev.weight) : 0;
+      // Calculate tier: every 7kg or part thereof = 1 tier
+      const tier = weight > 0 ? Math.ceil(weight / 7) : 0;
+      const totalPrice = pricePerKg * tier;
 
       return {
         ...prev,
@@ -457,7 +460,6 @@ function AdminOrders() {
     setNewOrderForm({
       userID: '',
       userName: '',
-      orderDate: new Date().toISOString().split('T')[0],
       items: '',
       status: 'Pending',
       selectedServices: [],
@@ -468,15 +470,27 @@ function AdminOrders() {
   const handleAddFormChange = (e) => {
     const { name, value } = e.target;
 
-    // Prevent orderDate from being changed
-    if (name === 'orderDate') {
-      return;
-    }
+    setNewOrderForm((prev) => {
+      const updatedForm = {
+        ...prev,
+        [name]: value,
+      };
 
-    setNewOrderForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+      // If weight changed, recalculate the total price
+      if (name === 'weight' && prev.selectedServices.length > 0) {
+        const service = services.find(
+          (s) => s.fld_serviceID === prev.selectedServices[0]
+        );
+        const pricePerKg = service ? parseFloat(service.fld_servicePrice) : 0;
+        const weight = value ? parseFloat(value) : 0;
+        // Calculate tier: every 7kg or part thereof = 1 tier
+        const tier = weight > 0 ? Math.ceil(weight / 7) : 0;
+        const totalPrice = pricePerKg * tier;
+        updatedForm.amount = `₱${totalPrice.toFixed(2)}`;
+      }
+
+      return updatedForm;
+    });
 
     // If userID field changed, fetch user data
     if (name === 'userID' && value) {
@@ -525,8 +539,8 @@ function AdminOrders() {
       showErrorToast('Please select a service');
       return;
     }
-    if (newOrderForm.items.trim() === '') {
-      showErrorToast('Please enter items');
+    if (!newOrderForm.weight || parseFloat(newOrderForm.weight) <= 0) {
+      showErrorToast('Please enter a valid weight in kg');
       return;
     }
 
@@ -541,11 +555,10 @@ function AdminOrders() {
       const orderData = {
         userID: parseInt(newOrderForm.userID),
         serviceID: newOrderForm.selectedServices[0],
-        orderDate: newOrderForm.orderDate,
         status: newOrderForm.status,
         amount: amount.toString(),
         adminID: adminID,
-        items: newOrderForm.items,
+        items: newOrderForm.weight,
       };
       console.log('Sending order data:', orderData);
 
@@ -601,6 +614,27 @@ function AdminOrders() {
       order.fld_orderStatus === 'Cancelled' &&
       !isOrderOlderThan1Day(order.fld_orderDate)
   );
+
+  // FIFO Algorithm: Sort orders by date and time (earliest first)
+  const sortOrdersByFIFO = (ordersArray) => {
+    return [...ordersArray].sort((a, b) => {
+      // Sort by date and time (earliest first)
+      const dateA = new Date(a.fld_orderDate);
+      const dateB = new Date(b.fld_orderDate);
+
+      if (dateA.getTime() !== dateB.getTime()) {
+        return dateA - dateB; // Earlier dates come first
+      }
+
+      // If dates are the same, sort by order ID (lower ID first)
+      return a.fld_orderID - b.fld_orderID;
+    });
+  };
+
+  // Apply FIFO sorting to all order lists
+  const sortedPendingOrders = sortOrdersByFIFO(pendingOrders);
+  const sortedCompletedOrders = sortOrdersByFIFO(completedOrders);
+  const sortedCancelledOrders = sortOrdersByFIFO(cancelledOrders);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -705,8 +739,8 @@ function AdminOrders() {
                 </tr>
               </thead>
               <tbody>
-                {pendingOrders && pendingOrders.length > 0 ? (
-                  pendingOrders.map((order) => (
+                {sortedPendingOrders && sortedPendingOrders.length > 0 ? (
+                  sortedPendingOrders.map((order) => (
                     <tr key={order.fld_orderID}>
                       <td className="order-id-cell">{order.fld_orderID}</td>
                       <td>{order.fld_username || '-'}</td>
@@ -775,7 +809,7 @@ function AdminOrders() {
           </div>
 
           {/* Completed Orders Section */}
-          {completedOrders && completedOrders.length > 0 && (
+          {sortedCompletedOrders && sortedCompletedOrders.length > 0 && (
             <div className="orders-section completed-orders">
               <h4 className="section-title">Completed Orders</h4>
               <table className="admin-table">
@@ -792,7 +826,7 @@ function AdminOrders() {
                   </tr>
                 </thead>
                 <tbody>
-                  {completedOrders.map((order) => (
+                  {sortedCompletedOrders.map((order) => (
                     <tr key={order.fld_orderID} className="completed-row">
                       <td className="order-id-cell">{order.fld_orderID}</td>
                       <td>{order.fld_username || '-'}</td>
@@ -824,7 +858,7 @@ function AdminOrders() {
           )}
 
           {/* Cancelled Orders Section */}
-          {cancelledOrders && cancelledOrders.length > 0 && (
+          {sortedCancelledOrders && sortedCancelledOrders.length > 0 && (
             <div className="orders-section cancelled-orders">
               <h4 className="section-title">Cancelled Orders</h4>
               <table className="admin-table">
@@ -841,7 +875,7 @@ function AdminOrders() {
                   </tr>
                 </thead>
                 <tbody>
-                  {cancelledOrders.map((order) => (
+                  {sortedCancelledOrders.map((order) => (
                     <tr key={order.fld_orderID} className="cancelled-row">
                       <td className="order-id-cell">{order.fld_orderID}</td>
                       <td>{order.fld_username || '-'}</td>
@@ -1208,19 +1242,6 @@ function AdminOrders() {
               </div>
 
               <div className="form-group">
-                <label htmlFor="add-date">Order Date</label>
-                <input
-                  type="text"
-                  id="add-date"
-                  name="orderDate"
-                  value={new Date(newOrderForm.orderDate).toLocaleDateString()}
-                  readOnly
-                  disabled
-                  className="read-only-field"
-                />
-              </div>
-
-              <div className="form-group">
                 <label>Select Services</label>
                 <div className="services-checkboxes">
                   {services && services.length > 0 ? (
@@ -1253,16 +1274,18 @@ function AdminOrders() {
               </div>
 
               <div className="form-group">
-                <label htmlFor="add-items">Items</label>
-                <textarea
-                  id="add-items"
-                  name="items"
-                  value={newOrderForm.items}
+                <label htmlFor="add-weight">Weight (kg)</label>
+                <input
+                  type="number"
+                  id="add-weight"
+                  name="weight"
+                  value={newOrderForm.weight}
                   onChange={handleAddFormChange}
-                  placeholder="Enter the items ordered"
-                  rows="3"
+                  placeholder="Enter weight in kilograms"
+                  step="0.1"
+                  min="0"
                   required
-                ></textarea>
+                />
               </div>
 
               <div className="form-group">
