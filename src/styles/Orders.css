@@ -66,7 +66,7 @@
 
 .search-btn {
   padding: 10px 20px;
-  background-color: #667eea;
+  background-color: #3980c4;
   color: white;
   border: none;
   border-radius: 6px;
@@ -100,14 +100,14 @@
 }
 
 .orders-table thead {
-  background-color: #f8f9fa;
+  background-color: #1c4e7d;
 }
 
 .orders-table th {
   padding: 15px;
   text-align: left;
   font-weight: 600;
-  color: #333;
+  color: white;
   border-bottom: 2px solid #e0e0e0;
 }
 
@@ -163,7 +163,7 @@
 }
 
 .modal-content {
-  background-color: white;
+  background-color: #99b0ca;
   border-radius: 8px;
   padding: 30px;
   max-width: 600px;
@@ -177,13 +177,12 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
 }
 
 .modal-header h3 {
   margin: 0;
   font-size: 20px;
-  color: #333;
+  color: black;
 }
 
 .close-btn {
@@ -192,7 +191,6 @@
   font-size: 24px;
   cursor: pointer;
   color: #999;
-  padding: 0;
   width: 30px;
   height: 30px;
   display: flex;
@@ -218,7 +216,7 @@
 .form-group label {
   margin-bottom: 6px;
   font-weight: 600;
-  color: #333;
+  color: black;
   font-size: 14px;
 }
 

@@ -4,11 +4,12 @@
   align-items: center;
   min-height: 90vh;
   width: 100%;
-  background: #e8f0f8;
+  background: #3980c4;
 }
 
 .register-card {
   background: white;
+  opacity: 80%;
   border-radius: 12px;
   margin: 20px;
   padding: 40px;
@@ -43,13 +44,8 @@
 .logo-section h1 {
   margin: 15px 0 5px 0;
   font-size: 28px;
-  color: #333;
-}
-
-.tagline {
   color: #999;
-  font-size: 14px;
-  margin: 0;
+  opacity: 100%;
 }
 
 .admin-mode-toggle {
@@ -109,7 +105,7 @@
   display: block;
   margin-bottom: 8px;
   font-weight: 600;
-  color: #333;
+  color: black;
   font-size: 14px;
 }
 
@@ -136,15 +132,14 @@
 
 .register-btn {
   width: 100%;
-  padding: 12px;
-  background: #333;
+  padding: 13px;
+  background: black;
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 20px;
   font-size: 16px;
-  font-weight: 600;
   cursor: pointer;
-  transition: background 0.3s ease;
+  font-weight: 600;
 }
 
 .register-btn:hover:not(:disabled) {

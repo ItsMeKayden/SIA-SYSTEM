@@ -1,5 +1,8 @@
 .reports-section {
   width: 100%;
+  background-color: #99b0ca;
+  border: 1px solid black;
+  padding: 10px;
 }
 
 .reports-section .section-header {
@@ -43,7 +46,7 @@
 .stat-label {
   margin: 0;
   font-size: 12px;
-  color: #999;
+  color: black;
   text-transform: uppercase;
   font-weight: 600;
 }
@@ -291,7 +294,7 @@
 .filter-group label {
   font-size: 12px;
   font-weight: 600;
-  color: #666;
+  color: black;
   margin-bottom: 5px;
 }
 

@@ -9,7 +9,7 @@ app.use(express.json());
 const db = mysql.createConnection({
   host: 'localhost',
   user: 'root',
-  password: '061504',
+  password: '1234',
   database: 'washtrack_db',
 });
 

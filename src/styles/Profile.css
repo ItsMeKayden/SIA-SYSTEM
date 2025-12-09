@@ -1,9 +1,13 @@
 .profile-section {
   width: 100%;
+  display: flex;
+  gap: 20px;
 }
 
 .profile-header {
-  margin-bottom: 30px;
+  margin: 0px;
+  border: 1px solid #3980c4;
+  padding: 50px;
 }
 
 .profile-header h3 {
@@ -20,6 +24,14 @@
   font-style: italic;
 }
 
+.userIDInfo {
+  background-color: #c6e0f8;
+  font-size: 20px;
+  font-weight: bold;
+  padding: 10px;
+  border-radius: 10px;
+}
+
 .profile-subtitle {
   margin: 0;
   font-size: 14px;
@@ -29,8 +41,8 @@
 .profile-form {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  max-width: 700px;
+  gap: 5px;
+  width: 100%;
 }
 
 .form-group {
@@ -70,6 +82,7 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
+  width: 100%;
 }
 
 .btn-save {

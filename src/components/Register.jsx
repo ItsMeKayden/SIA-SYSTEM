@@ -160,11 +160,10 @@ function Register({ onSwitchToLogin }) {
     <div className="register-page">
       <div className="register-card">
         <div className="logo-section">
-          <div className="logo-icon">👕</div>
-          <h1>{isAdminMode ? 'Admin Registration' : 'User Registration'}</h1>
-          <p className="tagline">
-            {isAdminMode ? 'Create your Admin account' : 'Create your WashTrack account'}
-          </p>
+          <div className="logo-icon">
+            <img src="../assets/WASHTRACKLOGO.png"></img>
+          </div>
+          <h1>WashTrack</h1>
         </div>
 
         {/* Admin Mode Toggle */}

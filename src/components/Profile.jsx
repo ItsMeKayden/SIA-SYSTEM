@@ -12,7 +12,7 @@ function Profile({ onRefreshUserData }) {
   const [passwordData, setPasswordData] = useState({
     oldPassword: '',
     newPassword: '',
-    confirmPassword: ''
+    confirmPassword: '',
   });
   const [userId, setUserId] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -148,21 +148,29 @@ function Profile({ onRefreshUserData }) {
     }
     try {
       const userEmail = getLoggedInUserEmail();
-      
+
       // Check if user is trying to change password
-      if (passwordData.oldPassword || passwordData.newPassword || passwordData.confirmPassword) {
+      if (
+        passwordData.oldPassword ||
+        passwordData.newPassword ||
+        passwordData.confirmPassword
+      ) {
         // If any password field is filled, all must be filled
-        if (!passwordData.oldPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+        if (
+          !passwordData.oldPassword ||
+          !passwordData.newPassword ||
+          !passwordData.confirmPassword
+        ) {
           alert('Please fill in all password fields to change your password!');
           return;
         }
-        
+
         // Check if new passwords match
         if (passwordData.newPassword !== passwordData.confirmPassword) {
           alert('New passwords do not match!');
           return;
         }
-        
+
         // Check password length
         if (passwordData.newPassword.length < 6) {
           alert('New password must be at least 6 characters long!');
@@ -170,44 +178,50 @@ function Profile({ onRefreshUserData }) {
         }
 
         // Verify old password first
-        const verifyResponse = await fetch('http://localhost:8081/verifypassword', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: userEmail,
-            oldPassword: passwordData.oldPassword
-          })
-        });
-        
+        const verifyResponse = await fetch(
+          'http://localhost:8081/verifypassword',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              email: userEmail,
+              oldPassword: passwordData.oldPassword,
+            }),
+          }
+        );
+
         const verifyResult = await verifyResponse.json();
-        
+
         if (!verifyResult.success) {
           alert('Old password is incorrect!');
           return;
         }
 
         // Update password if old password is correct
-        const passwordResponse = await fetch('http://localhost:8081/updatepassword', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: userEmail,
-            newPassword: passwordData.newPassword
-          })
-        });
-        
+        const passwordResponse = await fetch(
+          'http://localhost:8081/updatepassword',
+          {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              email: userEmail,
+              newPassword: passwordData.newPassword,
+            }),
+          }
+        );
+
         const passwordResult = await passwordResponse.json();
-        
+
         if (!passwordResult.success) {
           alert('Password update failed: ' + passwordResult.error);
           return;
         }
       }
-      
+
       // FOR UPDATING tbl_user
       const userResponse = await fetch('http://localhost:8081/updateuser', {
         method: 'PUT',
@@ -245,21 +259,23 @@ function Profile({ onRefreshUserData }) {
           setPasswordData({
             oldPassword: '',
             newPassword: '',
-            confirmPassword: ''
+            confirmPassword: '',
           });
-          
+
           alert('Profile changes saved successfully!');
 
           if (onRefreshUserData) {
             // Fetch the updated user data
-            const updatedResponse = await fetch(`http://localhost:8081/getuser/${userEmail}`);
+            const updatedResponse = await fetch(
+              `http://localhost:8081/getuser/${userEmail}`
+            );
             const updatedData = await updatedResponse.json();
-          
+
             if (updatedData.success) {
               onRefreshUserData(updatedData.user); // Update parent state
             }
           }
-          
+
           fetchUserData();
         } else {
           showErrorToast(
@@ -285,11 +301,11 @@ function Profile({ onRefreshUserData }) {
       <div className="profile-header">
         <h3>Profile Settings</h3>
         <p className="profile-subtitle">Manage your account information</p>
-      </div>
 
-      <div className="form-group">
-        <p className="field-description">Your unique user identifier</p>
-        <label htmlFor="userId">User ID: {userId || 'Loading...'}</label>
+        <div className="userIDInfo">
+          <p className="field-description">Your unique user identifier</p>
+          <label htmlFor="userId">User ID: {userId || 'Loading...'}</label>
+        </div>
       </div>
 
       <div className="profile-form">
@@ -379,15 +395,23 @@ function Profile({ onRefreshUserData }) {
               placeholder="Confirm new password"
             />
           </div>
-          
-          {passwordData.newPassword && passwordData.confirmPassword && passwordData.newPassword !== passwordData.confirmPassword && (
-            <p className="error-message">New passwords do not match!</p>
-          )}
-          
-          {(passwordData.oldPassword || passwordData.newPassword || passwordData.confirmPassword) && 
-           (!passwordData.oldPassword || !passwordData.newPassword || !passwordData.confirmPassword) && (
-            <p className="error-message">Please fill in all password fields to change your password!</p>
-          )}
+
+          {passwordData.newPassword &&
+            passwordData.confirmPassword &&
+            passwordData.newPassword !== passwordData.confirmPassword && (
+              <p className="error-message">New passwords do not match!</p>
+            )}
+
+          {(passwordData.oldPassword ||
+            passwordData.newPassword ||
+            passwordData.confirmPassword) &&
+            (!passwordData.oldPassword ||
+              !passwordData.newPassword ||
+              !passwordData.confirmPassword) && (
+              <p className="error-message">
+                Please fill in all password fields to change your password!
+              </p>
+            )}
         </div>
 
         <button className="btn btn-save" onClick={handleSave}>

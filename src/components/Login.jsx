@@ -102,9 +102,10 @@ function Login({ onSwitchToRegister, onLoginSuccess }) {
     <div className="login-page">
       <div className="login-card">
         <div className="logo-section">
-          <div className="logo-icon">👕</div>
+          <div className="logo-icon">
+            <img src="../assets/WASHTRACKLOGO.png"></img>
+          </div>
           <h1>WashTrack</h1>
-          <p className="tagline">Smart Laundry Management System</p>
         </div>
 
         {error && <div className="error-message">{error}</div>}

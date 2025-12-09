@@ -10,7 +10,7 @@
 }
 
 .dashboard-header {
-  background-color: #9cc6db;
+  background-color: #1c4e7d;
   padding: 20px 30px;
   border-bottom: 1px solid #e0e0e0;
   display: flex;
@@ -37,21 +37,21 @@
 
 .dashboard-header .logo {
   margin: 0;
-  font-size: 24px;
-  color: #333;
+  font-size: 30px;
+  color: white;
   font-weight: 600;
 }
 
 .welcome-text {
   margin: 0;
   font-size: 14px;
-  color: #666;
+  color: white;
 }
 
 .logout-btn {
   padding: 8px 20px;
-  background-color: #667eea;
-  color: white;
+  background-color: white;
+  color: black;
   border: none;
   border-radius: 6px;
   cursor: pointer;
@@ -65,6 +65,7 @@
 }
 
 .dashboard-container {
+  background-color: #c6e0f8;
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -79,6 +80,7 @@
   flex: 1;
   background-color: #fff;
   border-radius: 0;
+  border: 1px solid black;
   padding: 30px;
   box-shadow: none;
   margin: 20px;

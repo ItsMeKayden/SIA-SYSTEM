@@ -1,5 +1,8 @@
 .admin-orders-section {
   width: 100%;
+  background-color: white;
+  border: 1px solid black;
+  padding: 10px;
 }
 
 .section-header {
@@ -73,14 +76,14 @@
 }
 
 .admin-table thead {
-  background-color: #f8f9fa;
+  background-color: #1c4e7d;
 }
 
 .admin-table th {
   padding: 15px;
   text-align: left;
   font-weight: 600;
-  color: #333;
+  color: white;
   border-bottom: 2px solid #e0e0e0;
 }
 

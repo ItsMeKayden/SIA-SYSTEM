@@ -162,9 +162,7 @@ function Orders() {
       <div className="orders-header">
         <div className="header-content">
           <h3>My Orders</h3>
-          <p className="orders-subtitle">
-            Track your orders in queue (First Come First Serve)
-          </p>
+          <p className="orders-subtitle">View and Track your Orders.</p>
         </div>
       </div>
 

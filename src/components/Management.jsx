@@ -74,7 +74,9 @@ function Management() {
       });
       const result = await response.json();
       if (result.success) {
-        setAccounts(accounts.filter((account) => account.fld_staffID !== accountId));
+        setAccounts(
+          accounts.filter((account) => account.fld_staffID !== accountId)
+        );
         showSuccessToast('Staff deleted successfully');
       } else {
         showErrorToast('Failed to delete staff: ' + result.error);
@@ -109,8 +111,8 @@ function Management() {
     // Update locally first for immediate UI feedback
     setAccounts(
       accounts.map((account) =>
-        account.fld_staffID === accountId 
-          ? { ...account, fld_role: newRole } 
+        account.fld_staffID === accountId
+          ? { ...account, fld_role: newRole }
           : account
       )
     );
@@ -169,11 +171,7 @@ function Management() {
 
   const handleSubmitAddAdmin = async (e) => {
     e.preventDefault();
-    if (
-      newAdminForm.name &&
-      newAdminForm.email &&
-      newAdminForm.role
-    ) {
+    if (newAdminForm.name && newAdminForm.email && newAdminForm.role) {
       if (!adminID) {
         showErrorToast('Admin ID not found. Please login as admin.');
         return;

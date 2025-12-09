@@ -704,20 +704,6 @@ function Reports() {
       <div className="section-header">
         <h3>Reports & Analytics</h3>
         <p>View business statistics and performance metrics</p>
-        <button
-          onClick={fetchReportsData}
-          style={{
-            marginLeft: 'auto',
-            padding: '8px 16px',
-            backgroundColor: '#3498db',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-          }}
-        >
-          🔄 Refresh Data
-        </button>
       </div>
 
       {/* Quick Time Period Filters */}

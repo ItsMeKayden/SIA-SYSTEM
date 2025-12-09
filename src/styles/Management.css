@@ -1,5 +1,8 @@
 .management-section {
   width: 100%;
+  background-color: white;
+  border: 1px solid black;
+  padding: 10px;
 }
 
 .management-section .section-header {
@@ -73,14 +76,14 @@
 }
 
 .management-table thead {
-  background-color: #f8f9fa;
+  background-color: #1c4e7d;
 }
 
 .management-table th {
   padding: 15px;
   text-align: left;
   font-weight: 600;
-  color: #333;
+  color: white;
   border-bottom: 2px solid #e0e0e0;
 }
 
@@ -302,7 +305,7 @@
 }
 
 .modal-content {
-  background-color: white;
+  background-color: #99b0ca;
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   width: 90%;
@@ -316,13 +319,13 @@
   justify-content: space-between;
   align-items: center;
   padding: 25px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid black;
 }
 
 .modal-header h3 {
   margin: 0;
   font-size: 22px;
-  color: #333;
+  color: black;
   font-weight: 600;
 }
 
@@ -332,7 +335,6 @@
   font-size: 24px;
   color: #999;
   cursor: pointer;
-  padding: 0;
   width: 32px;
   height: 32px;
   display: flex;
@@ -355,17 +357,17 @@
 
 .detail-group label {
   display: block;
-  font-size: 12px;
-  font-weight: 600;
-  color: #999;
+  font-size: 18px;
+  font-weight: 800;
+  color: black;
   text-transform: uppercase;
   margin-bottom: 8px;
 }
 
 .detail-group p {
   margin: 0;
-  font-size: 16px;
-  color: #333;
+  font-size: 15px;
+  color: black;
   font-weight: 500;
 }
 
@@ -375,7 +377,7 @@
   border-radius: 20px;
   background-color: #667eea;
   color: white;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
 }
 
@@ -434,7 +436,7 @@
   display: block;
   margin-bottom: 8px;
   font-weight: 600;
-  color: #333;
+  color: black;
   font-size: 14px;
 }
 

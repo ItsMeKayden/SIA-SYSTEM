@@ -1,11 +1,10 @@
 .sidebar {
   width: 100%;
-  background-color: #f5f5f5;
+  background-color: #c6e0f8;
   border-radius: 0;
   padding: 0;
   box-shadow: none;
   height: auto;
-  border-bottom: 1px solid #e0e0e0;
 }
 
 .sidebar-nav {
@@ -15,6 +14,8 @@
   padding: 15px 30px;
   justify-content: center;
   align-items: center;
+  border: none;
+  background-color: #c6e0f8;
 }
 
 .nav-item {
@@ -62,6 +63,7 @@
 .nav-label {
   flex: 1;
   text-align: left;
+  color: black;
 }
 
 @media (max-width: 768px) {

@@ -191,10 +191,8 @@ function Tracking() {
   return (
     <section className="tracking-section">
       <div className="tracking-header">
-        <h3>Order Tracking</h3>
-        <p className="tracking-subtitle">
-          Track the status of your laundry orders (Active orders shown first)
-        </p>
+        <h3>My Orders</h3>
+        <p className="tracking-subtitle">View and Track your Orders.</p>
       </div>
 
       <div className="search-box">
