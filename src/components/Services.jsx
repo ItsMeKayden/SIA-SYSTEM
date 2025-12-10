@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import '../styles/Services.css';
 import { showSuccessToast, showErrorToast } from '../utils/toastUtils';
+import deletelogo from '../assets/DELETE.png';
+import editlogo from '../assets/EDIT.png';
 
 function Services() {
   const [services, setServices] = useState([]);
@@ -303,14 +305,14 @@ function Services() {
                       onClick={() => handleEditClick(service)}
                       title="Edit"
                     >
-                      ✏️
+                      <img src={editlogo} className="services-icon" />
                     </button>
                     <button
                       className="action-btn delete-btn"
                       title="Delete"
                       onClick={() => handleDeleteService(service.fld_serviceID)}
                     >
-                      🗑️
+                      <img src={deletelogo} className="services-icon" />
                     </button>
                   </td>
                 </tr>

@@ -4,6 +4,10 @@ import AdminOrders from './AdminOrders';
 import Management from './Management';
 import Reports from './Reports';
 import Services from './Services';
+import orderLogo from '../assets/ORDER.png';
+import managementLogo from '../assets/MANAGEMENT.png';
+import servicesLogo from '../assets/SERVICES.png';
+import reportLogo from '../assets/REPORT.png';
 
 function AdminDashboard({ userData, onLogout }) {
   const [activeTab, setActiveTab] = useState('orders');
@@ -41,25 +45,27 @@ function AdminDashboard({ userData, onLogout }) {
           className={`nav-btn ${activeTab === 'orders' ? 'active' : ''}`}
           onClick={() => setActiveTab('orders')}
         >
-          📦 Orders
+          <img src={orderLogo} />
+          Orders
         </button>
         <button
           className={`nav-btn ${activeTab === 'management' ? 'active' : ''}`}
           onClick={() => setActiveTab('management')}
         >
-          ⚙️ Management
+          <img src={managementLogo} /> Management
         </button>
         <button
           className={`nav-btn ${activeTab === 'reports' ? 'active' : ''}`}
           onClick={() => setActiveTab('reports')}
         >
-          📊 Reports
+          <img src={reportLogo} /> Reports
         </button>
         <button
           className={`nav-btn ${activeTab === 'services' ? 'active' : ''}`}
           onClick={() => setActiveTab('services')}
         >
-          🔧 Services
+          <img src={servicesLogo} />
+          Services
         </button>
       </nav>
 

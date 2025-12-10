@@ -123,6 +123,11 @@
   justify-content: center;
 }
 
+.services-icon {
+  width: 25px;
+  height: 25px;
+}
+
 .edit-btn {
   background-color: #e3f2fd;
   color: #1976d2;

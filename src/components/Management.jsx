@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import '../styles/Management.css';
 import { showSuccessToast, showErrorToast } from '../utils/toastUtils';
+import deletelogo from '../assets/DELETE.png';
+import viewlogo from '../assets/VIEW.png';
 
 function Management() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -273,14 +275,14 @@ function Management() {
                     onClick={() => handleViewAccount(account)}
                     title="View"
                   >
-                    👁️
+                    <img src={viewlogo} className="management-icons" />
                   </button>
                   <button
                     className="action-btn delete-btn"
                     onClick={() => handleDeleteAccount(account.fld_staffID)}
                     title="Delete"
                   >
-                    🗑️
+                    <img src={deletelogo} className="management-icons" />
                   </button>
                 </td>
               </tr>

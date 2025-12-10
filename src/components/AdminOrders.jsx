@@ -5,6 +5,9 @@ import {
   showErrorToast,
   showWarningToast,
 } from '../utils/toastUtils';
+import deletelogo from '../assets/DELETE.png';
+import editlogo from '../assets/EDIT.png';
+import viewlogo from '../assets/VIEW.png';
 
 function AdminOrders() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -700,7 +703,8 @@ function AdminOrders() {
               onMouseEnter={(e) => (e.target.style.backgroundColor = '#d97706')}
               onMouseLeave={(e) => (e.target.style.backgroundColor = '#f59e0b')}
             >
-              👁️ View Past Orders ({hiddenCompletedOrders.length})
+              <img src={viewlogo} className="pastOrder-icon" /> View Past Orders
+              ({hiddenCompletedOrders.length})
             </button>
           )}
         </div>
@@ -776,20 +780,20 @@ function AdminOrders() {
                           onClick={() => handleViewClick(order)}
                           title="View"
                         >
-                          👁️
+                          <img src={viewlogo} className="iconslogo" />
                         </button>
                         <button
                           className="action-btn edit-btn"
                           onClick={() => handleEditClick(order)}
                           title="Edit"
                         >
-                          ✏️
+                          <img src={editlogo} className="iconslogo" />
                         </button>
                         <button
                           className="action-btn delete-btn"
                           onClick={() => handleDeleteClick(order.fld_orderID)}
                         >
-                          🗑️
+                          <img src={deletelogo} className="iconslogo" />
                         </button>
                       </td>
                     </tr>

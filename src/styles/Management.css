@@ -159,6 +159,11 @@
   justify-content: center;
 }
 
+.management-icons {
+  width: 30px;
+  height: 30px;
+}
+
 .toggle-btn {
   background-color: #e8f5e9;
   color: #27ae60;

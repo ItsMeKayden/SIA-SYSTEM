@@ -21,26 +21,28 @@
 
 .logo-section {
   text-align: center;
-  margin-bottom: 30px;
   width: 100%;
 }
 
 .logo-icon {
-  font-size: 48px;
-  margin-bottom: 15px;
-  background: #667eea;
-  width: 60px;
-  height: 60px;
+  font-size: 50px;
+  background: #3980c4;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-left: auto;
   margin-right: auto;
+  width: 60px;
+  height: 60px;
+}
+
+.logo-icon img {
+  width: 60px;
+  height: 60px;
 }
 
 h1 {
-  margin: 15px 0 5px 0;
   font-size: 28px;
   color: white;
 }
@@ -167,7 +169,7 @@ h1 {
     padding: 30px 20px;
   }
 
-  .logo-section h1 {
+  .logo-section-text h1 {
     font-size: 24px;
   }
 

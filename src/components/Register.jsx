@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import '../styles/Register.css';
 import { showSuccessToast, showErrorToast } from '../utils/toastUtils';
+import logo from '../assets/WASHTRACKLOGO.png';
 
 function Register({ onSwitchToLogin }) {
   const [isAdminMode, setIsAdminMode] = useState(false);
@@ -161,7 +162,7 @@ function Register({ onSwitchToLogin }) {
       <div className="register-card">
         <div className="logo-section">
           <div className="logo-icon">
-            <img src="../assets/WASHTRACKLOGO.png"></img>
+            <img src={logo}></img>
           </div>
           <h1>WashTrack</h1>
         </div>

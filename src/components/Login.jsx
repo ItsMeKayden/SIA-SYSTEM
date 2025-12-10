@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import '../styles/Login.css';
+import logo from '../assets/WASHTRACKLOGO.png';
 
 function Login({ onSwitchToRegister, onLoginSuccess }) {
   const [email, setEmail] = useState('');
@@ -101,9 +102,9 @@ function Login({ onSwitchToRegister, onLoginSuccess }) {
   return (
     <div className="login-page">
       <div className="login-card">
-        <div className="logo-section">
+        <div className="logo-section-s">
           <div className="logo-icon">
-            <img src="../assets/WASHTRACKLOGO.png"></img>
+            <img src={logo}></img>
           </div>
           <h1>WashTrack</h1>
         </div>

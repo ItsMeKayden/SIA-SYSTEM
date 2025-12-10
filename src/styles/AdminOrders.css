@@ -154,6 +154,18 @@
   gap: 8px;
 }
 
+.pastOrder-icon {
+  width: 25px;
+  height: 25px;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.iconslogo {
+  width: 30px;
+  height: 30px;
+}
+
 .action-btn {
   width: 32px;
   height: 32px;
